@@ -12901,6 +12901,8 @@ ORDER BY t.table_name;
                 document.documentElement.style.setProperty('--secondary', state.company.secondaryColor);
                 
                 Utils.updatePixKey();
+                // Atualiza o card da empresa no dashboard imediatamente
+                try { Dashboard.update?.(); } catch(e) {}
                 // Sincroniza configurações com Supabase
                 SupaSync.upsertConfig().catch(() => {});
                 Toast.show('Configurações salvas com sucesso!');
