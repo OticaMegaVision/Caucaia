@@ -13405,10 +13405,12 @@ body.dark-mode,
                         try {
                             if (_activeProvider === 'gdrive'   && _gdriveToken)   await gdrivePullMedia(true);
                             if (_activeProvider === 'onedrive' && _onedriveToken) await onedrivePullMedia(true);
+                            if (_activeProvider === 'supabase' && _sbUser)        await supabasePullMedia(true);
                         } catch(_e) {}
                         window._lsBackupRestored = false;
                         if (_activeProvider === 'gdrive'   && _gdriveToken)   gdrivePushMedia(true).catch(()=>{});
                         if (_activeProvider === 'onedrive' && _onedriveToken) onedrivePushMedia(true).catch(()=>{});
+                        if (_activeProvider === 'supabase' && _sbUser)        supabasePushMedia(true).catch(()=>{});
                     })();
                     return;
                 }
@@ -13422,6 +13424,10 @@ body.dark-mode,
                 };
                 if (_activeProvider === 'gdrive'   && _gdriveToken)   gdrivePushMedia(true).catch(_mediaPushFail);
                 if (_activeProvider === 'onedrive' && _onedriveToken) onedrivePushMedia(true).catch(_mediaPushFail);
+                // ✅ FIX SYNC-MEDIA-SUPABASE: faltava o terceiro provedor aqui — era
+                // por isso que logo/fotos nunca saíam do aparelho quando o Supabase
+                // era a conexão ativa.
+                if (_activeProvider === 'supabase' && _sbUser)        supabasePushMedia(true).catch(_mediaPushFail);
             }
 
             function _pullMediaNow(silent) {
@@ -13431,6 +13437,9 @@ body.dark-mode,
                 // facilitar diagnóstico (antes o erro desaparecia por completo).
                 if (_activeProvider === 'gdrive'   && _gdriveToken)   gdrivePullMedia(silent).catch((e)=>console.warn('[CloudSync] pull de mídia falhou:', e?.message));
                 if (_activeProvider === 'onedrive' && _onedriveToken) onedrivePullMedia(silent).catch((e)=>console.warn('[CloudSync] pull de mídia falhou:', e?.message));
+                // ✅ FIX SYNC-MEDIA-SUPABASE: idem — sem isso o polling nunca baixava
+                // logo/fotos enviados por outro aparelho quando conectado ao Supabase.
+                if (_activeProvider === 'supabase' && _sbUser)        supabasePullMedia(silent).catch((e)=>console.warn('[CloudSync] pull de mídia falhou:', e?.message));
             }
 
             // ════════════════════════════════════════════════════════════════
@@ -14161,6 +14170,7 @@ body.dark-mode,
                     Toast.show('✅ Conectado ao Supabase', 'success');
                     _updateUI();
                     await supabasePull(true);
+                    supabasePullMedia(true).catch(()=>{});
                     _sbSubscribeRealtime();
                     _startPolling(); // fallback caso o canal Realtime caia
                     return true;
@@ -14180,6 +14190,7 @@ body.dark-mode,
                         _activeProvider = 'supabase';
                         _updateUI();
                         await supabasePull(true);
+                        supabasePullMedia(true).catch(()=>{});
                         _sbSubscribeRealtime();
                         _startPolling();
                         return true;
@@ -14235,6 +14246,73 @@ body.dark-mode,
                 }
             }
 
+            // ── Supabase: push/pull do arquivo de mídia (logo + fotos de produtos) ──
+            // ✅ FIX SYNC-MEDIA-SUPABASE: pushMediaNow()/_pullMediaNow() só conheciam
+            // os provedores 'gdrive' e 'onedrive' — quando o Supabase era o provedor
+            // ativo, o logo da empresa e as fotos de produtos NUNCA eram enviados nem
+            // baixados (o resto dos dados sincronizava normalmente pelo pacote
+            // "quente" _collectAllData/_applyCloudData, só a mídia ficava de fora).
+            // Reaproveita a mesma linha 'docs' (collection '_cloudsync'), só que com
+            // doc_id 'media' em vez de 'snapshot', e o mesmo _applyMediaData() já
+            // usado por Drive/OneDrive.
+            async function supabasePushMedia(silent) {
+                if (!_sbClient || !_sbUser) return;
+                if (_pushingMedia) return;
+                _pushingMedia = true;
+                try {
+                    const storeId = window._currentStore || 'barueri';
+                    const payload = _collectMediaData();
+                    const { error } = await _sbClient.from('docs').upsert({
+                        store_id:   storeId,
+                        collection: '_cloudsync',
+                        doc_id:     'media',
+                        data:       payload,
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'store_id,collection,doc_id' });
+                    if (error) throw error;
+                } catch(e) {
+                    console.warn('[CloudSync] push de mídia (Supabase) falhou:', e.message);
+                    if (!silent) throw e;
+                } finally {
+                    _pushingMedia = false;
+                }
+            }
+
+            async function supabasePullMedia(silent) {
+                if (!_sbClient || !_sbUser) return;
+                if (_pullingMedia) return;
+                _pullingMedia = true;
+                try {
+                    const storeId = window._currentStore || 'barueri';
+                    // Checagem leve primeiro (só updated_at), mesma ideia do fingerprint
+                    // usado por Drive/OneDrive — evita baixar o JSON de imagens inteiro
+                    // (pode ser pesado) quando nada mudou desde o último pull.
+                    const { data: meta, error: metaErr } = await _sbClient.from('docs')
+                        .select('updated_at')
+                        .eq('store_id', storeId).eq('collection', '_cloudsync').eq('doc_id', 'media')
+                        .maybeSingle();
+                    if (metaErr) throw metaErr;
+                    if (!meta) return; // nenhuma mídia enviada ainda por nenhum dispositivo
+                    const fpKey = _lsMediaFingerprintKey('supabase');
+                    if (meta.updated_at && meta.updated_at === localStorage.getItem(fpKey)) {
+                        return; // nada mudou desde o último pull
+                    }
+                    const { data, error } = await _sbClient.from('docs')
+                        .select('data, updated_at')
+                        .eq('store_id', storeId).eq('collection', '_cloudsync').eq('doc_id', 'media')
+                        .maybeSingle();
+                    if (error) throw error;
+                    if (data && data.data) {
+                        await _withSyncLock('cloud:supabasePullMedia', () => _applyMediaData(data.data, silent));
+                        if (data.updated_at) localStorage.setItem(fpKey, data.updated_at);
+                    }
+                } catch(e) {
+                    console.warn('[CloudSync] pull de mídia (Supabase) falhou:', e.message);
+                } finally {
+                    _pullingMedia = false;
+                }
+            }
+
             function _sbSubscribeRealtime() {
                 if (!_sbClient || _sbChannel) return;
                 const storeId = window._currentStore || 'barueri';
@@ -14246,6 +14324,10 @@ body.dark-mode,
                         // Ignora eco do próprio push (evita pull redundante logo após enviar)
                         if (Date.now() - _lastPushTime < 2000) return;
                         supabasePull(true);
+                        // ✅ FIX SYNC-MEDIA-SUPABASE: qualquer mudança na loja também pode
+                        // ser uma foto/logo novos — supabasePullMedia() é barato quando
+                        // nada mudou (checa updated_at antes de baixar o JSON completo).
+                        supabasePullMedia(true).catch(()=>{});
                     })
                     .subscribe();
             }
