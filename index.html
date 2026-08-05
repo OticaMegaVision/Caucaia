@@ -11378,16 +11378,33 @@ body.dark-mode,
                     // FIX #5: removida query inútil 'ALL_PLACEHOLDER' que nunca retornava nada.
                     // Busca por coleção
                     const cols = Object.values(_COL_MAP).filter((v,i,a) => a.indexOf(v) === i);
-                    for (const col of cols) {
-                        let items = await sbGetCollection(storeId, col);
-                        // ✅ FIX RACE: a busca acima é assíncrona — se a loja ativa mudou
-                        // enquanto ela rodava, este resultado pertence à loja ANTERIOR e
-                        // NUNCA deve ser gravado em `state`. Aborta a função inteira aqui
-                        // (nenhuma coleção restante é escrita) em vez de só pular esta.
-                        if (!stillActive()) {
-                            console.warn('[RxDB v17] ⚠️ _fetchAllData abortado: loja mudou de "' + storeId + '" durante o fetch de "' + col + '" — descartando resultado desatualizado.');
-                            return;
-                        }
+                    // ✅ FIX BUG A (sync não simultâneo): antes, cada coleção era buscada
+                    // sequencialmente (for...of com await dentro do laço) e só DEPOIS de
+                    // todo esse laço terminar é que config/main (Meta do mês) e
+                    // config/empresa (Empresa/logo) eram buscados — também um após o
+                    // outro. Isso fazia Empresa e Meta chegarem sempre por último, por
+                    // construção, não por lentidão pontual. Agora todas as buscas —
+                    // coleções + config/main + config/empresa — disparam em paralelo
+                    // (Promise.all) e só então os resultados são aplicados ao `state`.
+                    const colsPromise = Promise.all(
+                        cols.map(col => sbGetCollection(storeId, col).then(items => ({ col, items })))
+                    );
+                    const cfgPromise = !recentLocalEdit ? sbGetDoc(storeId, 'config', 'main')    : Promise.resolve(null);
+                    const empPromise = !recentLocalEdit ? sbGetDoc(storeId, 'config', 'empresa') : Promise.resolve(null);
+
+                    const [colsResults, cfg, emp] = await Promise.all([colsPromise, cfgPromise, empPromise]);
+
+                    // ✅ FIX RACE: checagem única, feita depois que TODAS as buscas
+                    // paralelas resolveram — se a loja ativa mudou durante qualquer uma
+                    // delas, descarta tudo de uma vez (nada é escrito em `state`), mesma
+                    // garantia da versão sequencial anterior (nunca grava "só metade").
+                    if (!stillActive()) {
+                        console.warn('[RxDB v17] ⚠️ _fetchAllData abortado: loja mudou de "' + storeId + '" durante o fetch paralelo — descartando resultado desatualizado.');
+                        return;
+                    }
+
+                    for (const { col, items: rawItems } of colsResults) {
+                        let items = rawItems;
                         const stateKey = Object.entries(_COL_MAP).find(([k,v]) => v === col)?.[0];
                         // ✅ FIX MIGRAÇÃO CRM: coleções antigas (crmContatos/crmTarefas/crmNps)
                         // podem conter o formato legado de doc único "bulk" com
@@ -11413,13 +11430,6 @@ body.dark-mode,
                     if (!recentLocalEdit) {
                         // FIX #4: restaura state.company, config e lastOsCounter corretamente
                         // sem usar Object.assign(state, cfg) que poluía o state com keys extras.
-                        const cfg = await sbGetDoc(storeId, 'config', 'main');
-                        // ✅ FIX RACE: mesma trava do loop de coleções — este sbGetDoc também
-                        // é assíncrono e pode resolver depois de uma troca de loja.
-                        if (!stillActive()) {
-                            console.warn('[RxDB v17] ⚠️ _fetchAllData abortado: loja mudou durante fetch de config/main.');
-                            return;
-                        }
                         if (cfg && typeof cfg === 'object') {
                             if (cfg.config        && typeof cfg.config        === 'object') Object.assign(state.config        || (state.config        = {}), cfg.config);
                             if (cfg.company       && typeof cfg.company       === 'object') Object.assign(state.company       || (state.company       = {}), cfg.company);
@@ -11428,12 +11438,6 @@ body.dark-mode,
                             if (cfg.wppMensagens  && typeof cfg.wppMensagens  === 'object') Object.assign(state.wppMensagens  || (state.wppMensagens  = {}), cfg.wppMensagens);
                         }
                         // Tenta também o doc 'empresa' para compatibilidade com switchTo
-                        const emp = await sbGetDoc(storeId, 'config', 'empresa');
-                        // ✅ FIX RACE: mesma trava — aborta se a loja mudou durante este await.
-                        if (!stillActive()) {
-                            console.warn('[RxDB v17] ⚠️ _fetchAllData abortado: loja mudou durante fetch de config/empresa.');
-                            return;
-                        }
                         if (emp && typeof emp === 'object') {
                             if (emp.company)       Object.assign(state.company       || (state.company       = {}), emp.company);
                             if (emp.notificacoes)  Object.assign(state.notificacoes  || (state.notificacoes  = {}), emp.notificacoes);
@@ -29890,6 +29894,15 @@ const AuthSystem = {
                 ? state.company.logo
                 : null;
 
+            // ✅ FIX BUG B-2 (logo some na tela de login): existe um cache local
+            // por loja (MediaCache) feito exatamente para pintar o logo
+            // instantaneamente, sem esperar a nuvem — App.updateCompanyDisplay()
+            // já usa isso como reserva, mas showLoginScreen() não usava. Mesma
+            // lógica reaproveitada aqui: quando state.company.logo ainda não
+            // chegou, consulta o MediaCache antes de cair para o fallback da
+            // sidebar/ícone padrão.
+            const cacheSrc = (window.MediaCache) ? MediaCache.get('company', 'logo') : null;
+
             // 2) Fallback: tenta pegar do elemento img da sidebar
             const sidebarImg = document.getElementById('logoImg');
             const sidebarSrc = sidebarImg && sidebarImg.src &&
@@ -29897,7 +29910,7 @@ const AuthSystem = {
                                sidebarImg.src.length > 10
                                ? sidebarImg.src : null;
 
-            const finalSrc = logoSrc || sidebarSrc;
+            const finalSrc = logoSrc || cacheSrc || sidebarSrc;
 
             if (finalSrc && loginLogo) {
                 loginLogo.src = finalSrc;
@@ -29931,8 +29944,12 @@ const AuthSystem = {
                 const loginName = document.getElementById('loginCompanyName');
                 const logoSrc = (typeof state !== 'undefined' && state.company && state.company.logo)
                     ? state.company.logo : null;
-                if (logoSrc && loginLogo) {
-                    loginLogo.src = logoSrc;
+                // ✅ FIX BUG B-2: mesma reserva via MediaCache na checagem de
+                // segurança de 300ms — igual à checagem inicial acima.
+                const cacheSrc = (window.MediaCache) ? MediaCache.get('company', 'logo') : null;
+                const finalSrc300 = logoSrc || cacheSrc;
+                if (finalSrc300 && loginLogo) {
+                    loginLogo.src = finalSrc300;
                     loginLogo.style.cssText = 'display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;';
                     if (loginFallback) loginFallback.style.display = 'none';
                     if (loginWrap) { loginWrap.style.background = 'none'; loginWrap.style.boxShadow = 'none'; }
@@ -30382,6 +30399,18 @@ const StoreManager = {
             editingId:null, editingSaleId:null, lastOsCounter:{},
             wppMensagens: keepMsgs
         });
+
+        // 4.5. ✅ FIX BUG B-1 (logo some ao trocar de loja): o reset acima zera
+        // state.company.logo (null) e, sem isto, o logo só voltava a ser pintado
+        // quando App.updateCompanyDisplay() rodasse de novo ao FINAL de todo o
+        // ciclo de sync (LocalFirst.switchStore() → _fetchAllData()) — ficando
+        // visivelmente ausente durante essa janela. App.updateCompanyDisplay()
+        // já sabe usar o MediaCache local (por loja) como reserva quando
+        // state.company.logo ainda não chegou; chamando-a aqui, imediatamente
+        // após a troca, o logo da loja nova (se já esteve em cache) volta na
+        // hora — sem esperar a nuvem. O dado definitivo segue vindo do sync
+        // normal no passo 6 abaixo, que sobrescreve este valor quando chegar.
+        try { App.updateCompanyDisplay?.(); } catch(_e) {}
 
         // 5. Atualiza badge de loja e fecha modal imediatamente
         this._updateUI();
