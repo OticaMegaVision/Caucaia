@@ -21470,7 +21470,8 @@ tbody tr td{border:1.5px solid #000;padding:2mm;text-align:center;font-weight:70
                 let total = 0, pending = 0, paid = 0;
 
                 state.expenses.forEach(e => {
-                    const d = new Date(e.date);
+                    if (!e.date) return;
+                    const d = new Date(e.date + 'T12:00:00');
                     if (d.getMonth() === month && d.getFullYear() === year) {
                         total += e.value;
                         if (e.status === 'pago') paid += e.value;
