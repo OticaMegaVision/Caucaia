@@ -8920,8 +8920,29 @@ body.dark-mode,
                 <!-- Aba Backup -->
                 <div id="tabBackup" class="config-tab" style="display: none;">
                     <div class="form-container">
-                        <h3 style="color: var(--primary); margin-bottom: 1.5rem;"><i class="fas fa-database"></i> Backup e Restauração</h3>
 
+                        <!-- ===== estilos exclusivos da aba Backup (organização visual — aprovado em amostra) ===== -->
+                        <style>
+                        .bkp-head{ display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:.9rem; margin-bottom:1.1rem; }
+                        .bkp-head h3{ margin:0 0 3px; }
+                        .bkp-head p{ margin:0; color:var(--gray); font-size:.82rem; }
+                        .bkp-nav{ display:flex; gap:4px; background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:4px; margin-bottom:1.2rem; overflow-x:auto; box-shadow:0 2px 10px rgba(16,24,40,.05); }
+                        .bkp-nav button{ flex:1; white-space:nowrap; border:none; background:transparent; color:var(--gray); font-size:.8rem; font-weight:700; padding:.6rem .8rem; border-radius:9px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:.15s; }
+                        .bkp-nav button.active{ background:#fff3ea; color:#cc4400; }
+                        .bkp-sec{ display:none; }
+                        .bkp-sec.active{ display:block; animation: bkpFade .2s ease; }
+                        @keyframes bkpFade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
+                        @media (max-width:560px){ .bkp-nav{ justify-content:flex-start; } }
+                        </style>
+
+                        <div class="bkp-head">
+                            <div>
+                                <h3 style="color: var(--primary);"><i class="fas fa-database"></i> Backup e Restauração</h3>
+                                <p>Proteja os dados da loja e sincronize entre dispositivos</p>
+                            </div>
+                        </div>
+
+                        <!-- AÇÕES RÁPIDAS -->
                         <!-- AÇÕES RÁPIDAS -->
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
                             <button class="btn btn-primary" onclick="App.exportBackup()" style="padding:1rem;font-size:1rem;font-weight:700;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
@@ -8933,6 +8954,7 @@ body.dark-mode,
                             <input type="file" id="importBackupConfig" class="d-none" accept=".json" onchange="App.importBackup(event)">
                         </div>
 
+                        <!-- FAIXA DE STATUS: sync com a nuvem + backup automático -->
                         <!-- FAIXA DE STATUS: sync com a nuvem + backup automático -->
                         <div class="status-strip">
                             <div style="background: linear-gradient(135deg, #1e1e2e, #2a2a3e); border-radius: var(--r-lg,14px); padding: 1.25rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; box-shadow:0 2px 10px rgba(16,24,40,.07);">
@@ -8964,7 +8986,18 @@ body.dark-mode,
                             </div>
                         </div>
 
-                        <!-- CONFIGURAÇÃO DO BACKUP DIÁRIO -->
+                        <!-- NAVEGAÇÃO POR SEÇÕES — organiza os ícones/ações em grupos em vez de uma rolagem única -->
+                        <div class="bkp-nav">
+                            <button class="active" data-bkpsec="auto" onclick="Config.showBackupSection('auto', this)"><i class="fas fa-clock"></i> Automático</button>
+                            <button data-bkpsec="manual" onclick="Config.showBackupSection('manual', this)"><i class="fas fa-arrow-right-arrow-left"></i> Manual</button>
+                            <button data-bkpsec="cloud" onclick="Config.showBackupSection('cloud', this)"><i class="fas fa-cloud"></i> Nuvem</button>
+                            <button data-bkpsec="advanced" onclick="Config.showBackupSection('advanced', this)"><i class="fas fa-microchip"></i> Avançado</button>
+                            <button data-bkpsec="risk" onclick="Config.showBackupSection('risk', this)"><i class="fas fa-triangle-exclamation"></i> Risco</button>
+                        </div>
+
+                        <!-- SEÇÃO: AUTOMÁTICO -->
+                        <div class="bkp-sec active" id="bkpSecAuto">
+                            <!-- CONFIGURAÇÃO DO BACKUP DIÁRIO -->
                         <div class="cfg-card">
                             <div class="cfg-card-head"><div class="ic" style="background:#fff3e0;color:#c65600;"><i class="fas fa-clock"></i></div><b>Backup Automático Diário</b></div>
                             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1.25rem; padding: 1.2rem 1.3rem;">
@@ -9041,8 +9074,7 @@ body.dark-mode,
                                 </div>
                             </div>
                         </div>
-
-                        <!-- HISTÓRICO DE BACKUPS -->
+                            <!-- HISTÓRICO DE BACKUPS -->
                         <div class="cfg-card">
                             <div class="cfg-card-head">
                                 <div class="ic" style="background:#e0e7ff;color:#4338ca;"><i class="fas fa-history"></i></div>
@@ -9053,27 +9085,11 @@ body.dark-mode,
                                 <p style="color:var(--gray); font-size:0.88rem; text-align:center; padding:1rem 0;">Nenhum backup registrado ainda</p>
                             </div>
                         </div>
-
-                        <!-- ZERAR DADOS LOCAIS -->
-                        <div class="danger-card">
-                            <div class="danger-head">
-                                <div class="danger-ic">🗑️</div>
-                                <div>
-                                    <div class="danger-t1">Zerar Dados Locais</div>
-                                    <div class="danger-t2">Remove todos os documentos da loja ativa do IndexedDB — permite começar do zero</div>
-                                </div>
-                            </div>
-                            <div style="display:flex;gap:0.6rem;flex-wrap:wrap;">
-                                <button class="btn btn-sm" style="background:#dc3545;color:#fff;font-weight:700;font-size:0.8rem;" onclick="App.wipeSingleStoreLocal()">
-                                    <i class="fas fa-trash-alt"></i> Zerar loja atual (<span id="wipeLojaNome">—</span>) localmente
-                                </button>
-                                <button class="btn btn-sm" style="background:#6c1c1c;color:#f8d7da;font-weight:700;font-size:0.8rem;border:1px solid rgba(220,53,69,0.5);" onclick="App.wipeAllStoresLocal()">
-                                    <i class="fas fa-database"></i> Zerar TODAS as lojas localmente
-                                </button>
-                            </div>
                         </div>
 
-                        <!-- EXPORTAR / RESTAURAR MANUAL -->
+                        <!-- SEÇÃO: MANUAL -->
+                        <div class="bkp-sec" id="bkpSecManual">
+                            <!-- EXPORTAR / RESTAURAR MANUAL -->
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; margin-bottom:1.5rem;">
                             <div style="background: var(--light); padding: 1.5rem; border-radius: 12px; border:1px solid rgba(0,0,0,0.06);">
                                 <h4 style="color: var(--primary); margin-bottom: 1rem; display:flex;align-items:center;gap:0.5rem;">
@@ -9103,8 +9119,161 @@ body.dark-mode,
                                 <input type="file" id="importBackupConfig2" class="d-none" accept=".json" onchange="App.importBackup(event)">
                             </div>
                         </div>
+                        </div>
 
-                        <!-- ═══════════════════════════════════════════════════════ -->
+                        <!-- SEÇÃO: NUVEM -->
+                        <div class="bkp-sec" id="bkpSecCloud">
+                            <!-- CLOUD SYNC — GOOGLE DRIVE + ONEDRIVE -->
+                        <div style="background:linear-gradient(135deg,#0a1628,#0d2137);border:1px solid #3b82f6;border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;">
+                            <h4 style="color:#60a5fa;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.5rem;">
+                                <i class="fas fa-cloud" style="color:#60a5fa;"></i> Sync em Tempo Real — Google Drive &amp; OneDrive
+                                <span style="font-size:0.65rem;background:#1e3a5f;color:#93c5fd;padding:2px 7px;border-radius:4px;font-weight:700;">5s ⚡ REAL-TIME</span>
+                            </h4>
+
+                            <!-- ALERTA: cada navegador precisa de autenticação própria -->
+                            <div style="background:#1a1a00;border:1px solid #b45309;border-radius:8px;padding:10px 12px;margin-bottom:1rem;font-size:0.78rem;color:#fcd34d;">
+                                <strong>⚠️ Importante:</strong> Cada navegador (Chrome, Edge, Firefox) precisa se conectar ao Google Drive separadamente. O token Google Drive é renovado automaticamente (silenciosamente) antes de expirar. Caso o navegador bloqueie popups, use o botão de reconexão que aparece automaticamente.
+                            </div>
+
+                            <p style="color:#93c5fd;font-size:0.78rem;margin-bottom:1rem;">
+                                Dados sincronizados a cada <strong>5 segundos</strong> quando o app está ativo — ideal para uso simultâneo em múltiplos dispositivos.
+                            </p>
+
+                            <!-- Status Cloud -->
+                            <div id="cloudSyncStatus" style="font-size:0.78rem;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);margin-bottom:1rem;color:#9ca3af;">
+                                ⚫ Nenhum provedor conectado — dados apenas locais
+                            </div>
+
+                            <!-- Abas de provedor -->
+                            <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+                                <button id="cloudTabGdrive" class="btn btn-sm" style="background:#1a73e8;color:#fff;font-weight:700;flex:1;" onclick="CloudSync.showTab('gdrive')">
+                                    <i class="fab fa-google-drive"></i> Google Drive
+                                </button>
+                                <button id="cloudTabOnedrive" class="btn btn-sm" style="background:#0078d4;color:#fff;font-weight:700;flex:1;" onclick="CloudSync.showTab('onedrive')">
+                                    <i class="fab fa-microsoft"></i> OneDrive
+                                </button>
+                                <button id="cloudTabSupabase" class="btn btn-sm" style="background:#3ecf8e;color:#08312a;font-weight:700;flex:1;" onclick="CloudSync.showTab('supabase')">
+                                    <i class="fas fa-bolt"></i> Supabase
+                                </button>
+                            </div>
+
+                            <!-- Google Drive Panel -->
+                            <div id="cloudPanelGdrive" style="display:block;">
+                                <div id="gdriveDisconnected">
+                                    <p style="color:#93c5fd;font-size:0.8rem;margin-bottom:0.75rem;">
+                                        <i class="fas fa-info-circle"></i> Conecte sua conta Google para sincronizar via Google Drive. Os dados ficam em <strong>Meu Drive / OticaVisionPro</strong>.
+                                    </p>
+                                    <button class="btn btn-sm" style="background:#1a73e8;color:#fff;font-weight:700;width:100%;padding:10px;"
+                                        onclick="CloudSync.connectGDrive()">
+                                        <i class="fab fa-google"></i> Conectar com Google Drive
+                                    </button>
+                                    <div style="margin-top:0.5rem;">
+                                        <label style="color:#9ca3af;font-size:0.72rem;font-weight:600;">Client ID (Google Cloud Console)</label>
+                                        <input id="gdriveClientId" type="text" placeholder="xxxx.apps.googleusercontent.com"
+                                            style="width:100%;background:#0f172a;color:#93c5fd;border:1px solid #1e3a5f;border-radius:6px;padding:7px 10px;font-size:0.8rem;font-family:monospace;margin-top:3px;"
+                                            value="">
+                                        <div style="color:#6b7280;font-size:0.68rem;margin-top:2px;">Opcional — use apenas se quiser seu próprio app Google. <a href="https://console.cloud.google.com" target="_blank" style="color:#60a5fa;">console.cloud.google.com</a></div>
+                                    </div>
+                                </div>
+                                <div id="gdriveConnected" style="display:none;">
+                                    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;color:#4ade80;font-weight:700;font-size:0.85rem;">
+                                        <span id="cs_gdrive_pulse" style="width:10px;height:10px;border-radius:50%;background:#4ade80;display:inline-block;animation:cs_pulse 1.5s ease-in-out infinite alternate;"></span>
+                                        Google Drive — sync a cada 5s
+                                    </div>
+                                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+                                        <button class="btn btn-sm" style="background:#1a73e8;color:#fff;font-weight:700;flex:1;" onclick="CloudSync.gdrivePush()">
+                                            <i class="fas fa-cloud-upload-alt"></i> Enviar agora
+                                        </button>
+                                        <button class="btn btn-sm" style="background:#34a853;color:#fff;font-weight:700;flex:1;" onclick="CloudSync.gdrivePull()">
+                                            <i class="fas fa-cloud-download-alt"></i> Baixar agora
+                                        </button>
+                                    </div>
+                                    <div id="cs_gdrive_last_sync" style="font-size:0.7rem;color:#6b7280;margin-bottom:0.5rem;text-align:center;">—</div>
+                                    <button class="btn btn-sm" style="background:transparent;color:#64748b;border:1px solid #334155;font-size:0.72rem;width:100%;"
+                                        onclick="CloudSync.gdriveDisconnect()">
+                                        <i class="fas fa-sign-out-alt"></i> Desconectar Google Drive
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- OneDrive Panel -->
+                            <div id="cloudPanelOnedrive" style="display:none;">
+                                <div id="onedriveDisconnected">
+                                    <p style="color:#93c5fd;font-size:0.8rem;margin-bottom:0.75rem;">
+                                        <i class="fas fa-info-circle"></i> Conecte sua conta Microsoft para sincronizar via OneDrive. Os dados ficam em <strong>OneDrive / OticaVisionPro</strong>.
+                                    </p>
+                                    <button class="btn btn-sm" style="background:#0078d4;color:#fff;font-weight:700;width:100%;padding:10px;"
+                                        onclick="CloudSync.connectOneDrive()">
+                                        <i class="fab fa-microsoft"></i> Conectar com OneDrive
+                                    </button>
+                                    <div style="margin-top:0.5rem;">
+                                        <label style="color:#9ca3af;font-size:0.72rem;font-weight:600;">Client ID (Azure App Registration)</label>
+                                        <input id="onedriveClientId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                                            style="width:100%;background:#0f172a;color:#93c5fd;border:1px solid #1e3a5f;border-radius:6px;padding:7px 10px;font-size:0.8rem;font-family:monospace;margin-top:3px;"
+                                            value="">
+                                        <div style="color:#6b7280;font-size:0.68rem;margin-top:2px;">Opcional — use apenas se quiser seu próprio app Azure. <a href="https://portal.azure.com" target="_blank" style="color:#60a5fa;">portal.azure.com</a></div>
+                                    </div>
+                                </div>
+                                <div id="onedriveConnected" style="display:none;">
+                                    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;color:#4ade80;font-weight:700;font-size:0.85rem;">
+                                        <span style="width:10px;height:10px;border-radius:50%;background:#4ade80;display:inline-block;animation:cs_pulse 1.5s ease-in-out infinite alternate;"></span>
+                                        OneDrive — sync a cada 5s
+                                    </div>
+                                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                                        <button class="btn btn-sm" style="background:#0078d4;color:#fff;font-weight:700;flex:1;" onclick="CloudSync.onedrivePush()">
+                                            <i class="fas fa-cloud-upload-alt"></i> Enviar agora
+                                        </button>
+                                        <button class="btn btn-sm" style="background:#00a4ef;color:#fff;font-weight:700;flex:1;" onclick="CloudSync.onedrivePull()">
+                                            <i class="fas fa-cloud-download-alt"></i> Baixar agora
+                                        </button>
+                                    </div>
+                                    <button class="btn btn-sm" style="background:transparent;color:#64748b;border:1px solid #334155;font-size:0.72rem;margin-top:0.5rem;width:100%;"
+                                        onclick="CloudSync.onedriveDisconnect()">
+                                        <i class="fas fa-sign-out-alt"></i> Desconectar OneDrive
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Supabase Panel -->
+                            <div id="cloudPanelSupabase" style="display:none;">
+                                <div id="supabaseDisconnected">
+                                    <p style="color:#93c5fd;font-size:0.8rem;margin-bottom:0.75rem;">
+                                        <i class="fas fa-info-circle"></i> Entre com o usuário criado no Supabase Auth (ver passo a passo da Fase 1). Sync via Postgres + Realtime — mais rápido que Drive/OneDrive.
+                                    </p>
+                                    <input id="supabaseEmail" type="email" placeholder="usuario@oticamegavision.local"
+                                        style="width:100%;background:#0f172a;color:#93c5fd;border:1px solid #1e3a5f;border-radius:6px;padding:8px 10px;font-size:0.82rem;margin-bottom:0.5rem;">
+                                    <input id="supabasePassword" type="password" placeholder="Senha"
+                                        style="width:100%;background:#0f172a;color:#93c5fd;border:1px solid #1e3a5f;border-radius:6px;padding:8px 10px;font-size:0.82rem;margin-bottom:0.75rem;">
+                                    <button class="btn btn-sm" style="background:#3ecf8e;color:#08312a;font-weight:700;width:100%;padding:10px;"
+                                        onclick="CloudSync.connectSupabase(document.getElementById('supabaseEmail').value.trim(), document.getElementById('supabasePassword').value)">
+                                        <i class="fas fa-bolt"></i> Conectar com Supabase
+                                    </button>
+                                </div>
+                                <div id="supabaseConnected" style="display:none;">
+                                    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;color:#4ade80;font-weight:700;font-size:0.85rem;">
+                                        <span style="width:10px;height:10px;border-radius:50%;background:#4ade80;display:inline-block;animation:cs_pulse 1.5s ease-in-out infinite alternate;"></span>
+                                        Supabase — Realtime ativo
+                                    </div>
+                                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                                        <button class="btn btn-sm" style="background:#3ecf8e;color:#08312a;font-weight:700;flex:1;" onclick="CloudSync.supabasePush()">
+                                            <i class="fas fa-cloud-upload-alt"></i> Enviar agora
+                                        </button>
+                                        <button class="btn btn-sm" style="background:#249d68;color:#fff;font-weight:700;flex:1;" onclick="CloudSync.supabasePull()">
+                                            <i class="fas fa-cloud-download-alt"></i> Baixar agora
+                                        </button>
+                                    </div>
+                                    <button class="btn btn-sm" style="background:transparent;color:#64748b;border:1px solid #334155;font-size:0.72rem;margin-top:0.5rem;width:100%;"
+                                        onclick="CloudSync.supabaseDisconnect()">
+                                        <i class="fas fa-sign-out-alt"></i> Desconectar Supabase
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+
+                        <!-- SEÇÃO: AVANÇADO (RxDB) -->
+                        <div class="bkp-sec" id="bkpSecAdvanced">
+                            <!-- ═══════════════════════════════════════════════════════ -->
                         <!-- PAINEL LOCAL PROFISSIONAL — Local-First Storage v2    -->
                         <!-- ═══════════════════════════════════════════════════════ -->
                         <style>
@@ -9269,154 +9438,29 @@ body.dark-mode,
                                 </span>
                             </div>
                         </div>
+                        </div>
 
-                        <!-- CLOUD SYNC — GOOGLE DRIVE + ONEDRIVE -->
-                        <div style="background:linear-gradient(135deg,#0a1628,#0d2137);border:1px solid #3b82f6;border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;">
-                            <h4 style="color:#60a5fa;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.5rem;">
-                                <i class="fas fa-cloud" style="color:#60a5fa;"></i> Sync em Tempo Real — Google Drive &amp; OneDrive
-                                <span style="font-size:0.65rem;background:#1e3a5f;color:#93c5fd;padding:2px 7px;border-radius:4px;font-weight:700;">5s ⚡ REAL-TIME</span>
-                            </h4>
-
-                            <!-- ALERTA: cada navegador precisa de autenticação própria -->
-                            <div style="background:#1a1a00;border:1px solid #b45309;border-radius:8px;padding:10px 12px;margin-bottom:1rem;font-size:0.78rem;color:#fcd34d;">
-                                <strong>⚠️ Importante:</strong> Cada navegador (Chrome, Edge, Firefox) precisa se conectar ao Google Drive separadamente. O token Google Drive é renovado automaticamente (silenciosamente) antes de expirar. Caso o navegador bloqueie popups, use o botão de reconexão que aparece automaticamente.
+                        <!-- SEÇÃO: RISCO (zerar dados + área de risco, agrupadas) -->
+                        <div class="bkp-sec" id="bkpSecRisk">
+                            <!-- ZERAR DADOS LOCAIS -->
+                        <div class="danger-card">
+                            <div class="danger-head">
+                                <div class="danger-ic">🗑️</div>
+                                <div>
+                                    <div class="danger-t1">Zerar Dados Locais</div>
+                                    <div class="danger-t2">Remove todos os documentos da loja ativa do IndexedDB — permite começar do zero</div>
+                                </div>
                             </div>
-
-                            <p style="color:#93c5fd;font-size:0.78rem;margin-bottom:1rem;">
-                                Dados sincronizados a cada <strong>5 segundos</strong> quando o app está ativo — ideal para uso simultâneo em múltiplos dispositivos.
-                            </p>
-
-                            <!-- Status Cloud -->
-                            <div id="cloudSyncStatus" style="font-size:0.78rem;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,0.3);margin-bottom:1rem;color:#9ca3af;">
-                                ⚫ Nenhum provedor conectado — dados apenas locais
-                            </div>
-
-                            <!-- Abas de provedor -->
-                            <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
-                                <button id="cloudTabGdrive" class="btn btn-sm" style="background:#1a73e8;color:#fff;font-weight:700;flex:1;" onclick="CloudSync.showTab('gdrive')">
-                                    <i class="fab fa-google-drive"></i> Google Drive
+                            <div style="display:flex;gap:0.6rem;flex-wrap:wrap;">
+                                <button class="btn btn-sm" style="background:#dc3545;color:#fff;font-weight:700;font-size:0.8rem;" onclick="App.wipeSingleStoreLocal()">
+                                    <i class="fas fa-trash-alt"></i> Zerar loja atual (<span id="wipeLojaNome">—</span>) localmente
                                 </button>
-                                <button id="cloudTabOnedrive" class="btn btn-sm" style="background:#0078d4;color:#fff;font-weight:700;flex:1;" onclick="CloudSync.showTab('onedrive')">
-                                    <i class="fab fa-microsoft"></i> OneDrive
+                                <button class="btn btn-sm" style="background:#6c1c1c;color:#f8d7da;font-weight:700;font-size:0.8rem;border:1px solid rgba(220,53,69,0.5);" onclick="App.wipeAllStoresLocal()">
+                                    <i class="fas fa-database"></i> Zerar TODAS as lojas localmente
                                 </button>
-                                <button id="cloudTabSupabase" class="btn btn-sm" style="background:#3ecf8e;color:#08312a;font-weight:700;flex:1;" onclick="CloudSync.showTab('supabase')">
-                                    <i class="fas fa-bolt"></i> Supabase
-                                </button>
-                            </div>
-
-                            <!-- Google Drive Panel -->
-                            <div id="cloudPanelGdrive" style="display:block;">
-                                <div id="gdriveDisconnected">
-                                    <p style="color:#93c5fd;font-size:0.8rem;margin-bottom:0.75rem;">
-                                        <i class="fas fa-info-circle"></i> Conecte sua conta Google para sincronizar via Google Drive. Os dados ficam em <strong>Meu Drive / OticaVisionPro</strong>.
-                                    </p>
-                                    <button class="btn btn-sm" style="background:#1a73e8;color:#fff;font-weight:700;width:100%;padding:10px;"
-                                        onclick="CloudSync.connectGDrive()">
-                                        <i class="fab fa-google"></i> Conectar com Google Drive
-                                    </button>
-                                    <div style="margin-top:0.5rem;">
-                                        <label style="color:#9ca3af;font-size:0.72rem;font-weight:600;">Client ID (Google Cloud Console)</label>
-                                        <input id="gdriveClientId" type="text" placeholder="xxxx.apps.googleusercontent.com"
-                                            style="width:100%;background:#0f172a;color:#93c5fd;border:1px solid #1e3a5f;border-radius:6px;padding:7px 10px;font-size:0.8rem;font-family:monospace;margin-top:3px;"
-                                            value="">
-                                        <div style="color:#6b7280;font-size:0.68rem;margin-top:2px;">Opcional — use apenas se quiser seu próprio app Google. <a href="https://console.cloud.google.com" target="_blank" style="color:#60a5fa;">console.cloud.google.com</a></div>
-                                    </div>
-                                </div>
-                                <div id="gdriveConnected" style="display:none;">
-                                    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;color:#4ade80;font-weight:700;font-size:0.85rem;">
-                                        <span id="cs_gdrive_pulse" style="width:10px;height:10px;border-radius:50%;background:#4ade80;display:inline-block;animation:cs_pulse 1.5s ease-in-out infinite alternate;"></span>
-                                        Google Drive — sync a cada 5s
-                                    </div>
-                                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
-                                        <button class="btn btn-sm" style="background:#1a73e8;color:#fff;font-weight:700;flex:1;" onclick="CloudSync.gdrivePush()">
-                                            <i class="fas fa-cloud-upload-alt"></i> Enviar agora
-                                        </button>
-                                        <button class="btn btn-sm" style="background:#34a853;color:#fff;font-weight:700;flex:1;" onclick="CloudSync.gdrivePull()">
-                                            <i class="fas fa-cloud-download-alt"></i> Baixar agora
-                                        </button>
-                                    </div>
-                                    <div id="cs_gdrive_last_sync" style="font-size:0.7rem;color:#6b7280;margin-bottom:0.5rem;text-align:center;">—</div>
-                                    <button class="btn btn-sm" style="background:transparent;color:#64748b;border:1px solid #334155;font-size:0.72rem;width:100%;"
-                                        onclick="CloudSync.gdriveDisconnect()">
-                                        <i class="fas fa-sign-out-alt"></i> Desconectar Google Drive
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- OneDrive Panel -->
-                            <div id="cloudPanelOnedrive" style="display:none;">
-                                <div id="onedriveDisconnected">
-                                    <p style="color:#93c5fd;font-size:0.8rem;margin-bottom:0.75rem;">
-                                        <i class="fas fa-info-circle"></i> Conecte sua conta Microsoft para sincronizar via OneDrive. Os dados ficam em <strong>OneDrive / OticaVisionPro</strong>.
-                                    </p>
-                                    <button class="btn btn-sm" style="background:#0078d4;color:#fff;font-weight:700;width:100%;padding:10px;"
-                                        onclick="CloudSync.connectOneDrive()">
-                                        <i class="fab fa-microsoft"></i> Conectar com OneDrive
-                                    </button>
-                                    <div style="margin-top:0.5rem;">
-                                        <label style="color:#9ca3af;font-size:0.72rem;font-weight:600;">Client ID (Azure App Registration)</label>
-                                        <input id="onedriveClientId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                                            style="width:100%;background:#0f172a;color:#93c5fd;border:1px solid #1e3a5f;border-radius:6px;padding:7px 10px;font-size:0.8rem;font-family:monospace;margin-top:3px;"
-                                            value="">
-                                        <div style="color:#6b7280;font-size:0.68rem;margin-top:2px;">Opcional — use apenas se quiser seu próprio app Azure. <a href="https://portal.azure.com" target="_blank" style="color:#60a5fa;">portal.azure.com</a></div>
-                                    </div>
-                                </div>
-                                <div id="onedriveConnected" style="display:none;">
-                                    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;color:#4ade80;font-weight:700;font-size:0.85rem;">
-                                        <span style="width:10px;height:10px;border-radius:50%;background:#4ade80;display:inline-block;animation:cs_pulse 1.5s ease-in-out infinite alternate;"></span>
-                                        OneDrive — sync a cada 5s
-                                    </div>
-                                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-                                        <button class="btn btn-sm" style="background:#0078d4;color:#fff;font-weight:700;flex:1;" onclick="CloudSync.onedrivePush()">
-                                            <i class="fas fa-cloud-upload-alt"></i> Enviar agora
-                                        </button>
-                                        <button class="btn btn-sm" style="background:#00a4ef;color:#fff;font-weight:700;flex:1;" onclick="CloudSync.onedrivePull()">
-                                            <i class="fas fa-cloud-download-alt"></i> Baixar agora
-                                        </button>
-                                    </div>
-                                    <button class="btn btn-sm" style="background:transparent;color:#64748b;border:1px solid #334155;font-size:0.72rem;margin-top:0.5rem;width:100%;"
-                                        onclick="CloudSync.onedriveDisconnect()">
-                                        <i class="fas fa-sign-out-alt"></i> Desconectar OneDrive
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Supabase Panel -->
-                            <div id="cloudPanelSupabase" style="display:none;">
-                                <div id="supabaseDisconnected">
-                                    <p style="color:#93c5fd;font-size:0.8rem;margin-bottom:0.75rem;">
-                                        <i class="fas fa-info-circle"></i> Entre com o usuário criado no Supabase Auth (ver passo a passo da Fase 1). Sync via Postgres + Realtime — mais rápido que Drive/OneDrive.
-                                    </p>
-                                    <input id="supabaseEmail" type="email" placeholder="usuario@oticamegavision.local"
-                                        style="width:100%;background:#0f172a;color:#93c5fd;border:1px solid #1e3a5f;border-radius:6px;padding:8px 10px;font-size:0.82rem;margin-bottom:0.5rem;">
-                                    <input id="supabasePassword" type="password" placeholder="Senha"
-                                        style="width:100%;background:#0f172a;color:#93c5fd;border:1px solid #1e3a5f;border-radius:6px;padding:8px 10px;font-size:0.82rem;margin-bottom:0.75rem;">
-                                    <button class="btn btn-sm" style="background:#3ecf8e;color:#08312a;font-weight:700;width:100%;padding:10px;"
-                                        onclick="CloudSync.connectSupabase(document.getElementById('supabaseEmail').value.trim(), document.getElementById('supabasePassword').value)">
-                                        <i class="fas fa-bolt"></i> Conectar com Supabase
-                                    </button>
-                                </div>
-                                <div id="supabaseConnected" style="display:none;">
-                                    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;color:#4ade80;font-weight:700;font-size:0.85rem;">
-                                        <span style="width:10px;height:10px;border-radius:50%;background:#4ade80;display:inline-block;animation:cs_pulse 1.5s ease-in-out infinite alternate;"></span>
-                                        Supabase — Realtime ativo
-                                    </div>
-                                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-                                        <button class="btn btn-sm" style="background:#3ecf8e;color:#08312a;font-weight:700;flex:1;" onclick="CloudSync.supabasePush()">
-                                            <i class="fas fa-cloud-upload-alt"></i> Enviar agora
-                                        </button>
-                                        <button class="btn btn-sm" style="background:#249d68;color:#fff;font-weight:700;flex:1;" onclick="CloudSync.supabasePull()">
-                                            <i class="fas fa-cloud-download-alt"></i> Baixar agora
-                                        </button>
-                                    </div>
-                                    <button class="btn btn-sm" style="background:transparent;color:#64748b;border:1px solid #334155;font-size:0.72rem;margin-top:0.5rem;width:100%;"
-                                        onclick="CloudSync.supabaseDisconnect()">
-                                        <i class="fas fa-sign-out-alt"></i> Desconectar Supabase
-                                    </button>
-                                </div>
                             </div>
                         </div>
-                                                <!-- ÁREA DE RISCO -->
+                            <!-- ÁREA DE RISCO -->
                         <div class="risk-area" style="background: #fff3cd; border: 1px solid #ffeeba; border-radius: 10px; padding: 1.5rem;">
                             <h4 style="color: #856404; margin-bottom: 0.75rem;">
                                 <i class="fas fa-exclamation-triangle"></i> Área de Risco
@@ -9433,6 +9477,8 @@ body.dark-mode,
                                 </button>
                             </div>
                         </div>
+                        </div>
+
                     </div>
                 </div>
 
@@ -12300,13 +12346,15 @@ body.dark-mode,
             // segundo plano) para aparecer no outro aparelho. Como o pull de
             // mídia continua barato (checa só metadados antes de baixar o
             // arquivo inteiro), esse intervalo menor não pesa no tráfego.
-            const MEDIA_POLL_ACTIVE_MS    = 7000;
-            // ✅ FIX SYNC-POLLING: reduzido de 45s para 15s — melhora a
-            // responsividade da sincronização do logo/fotos quando a aba está em
-            // background (outra aba/app em foco), sem pesar muito no consumo de
-            // dados (a checagem em si é leve, só baixa o arquivo completo se o
-            // fingerprint mudou — ver gdrivePullMedia/onedrivePullMedia).
-            const MEDIA_POLL_BACKGROUND_MS = 15000;
+            // ✅ FASE 3: com o Realtime agora aplicando o payload diretamente (ver
+            // _sbSubscribeRealtime) e reconectando sozinho, esse poll deixou de ser
+            // o caminho principal pro Supabase — virou só uma rede de segurança
+            // pros casos em que o Realtime não está disponível (Drive/OneDrive, ou
+            // alguma falha de rede pontual). Por isso dá pra igualar ao poll dos
+            // dados "quentes" sem custo real: a checagem continua leve (só
+            // updated_at antes de baixar o JSON completo).
+            const MEDIA_POLL_ACTIVE_MS    = POLL_ACTIVE_MS;      // 5s — mesmo ritmo dos dados quentes
+            const MEDIA_POLL_BACKGROUND_MS = POLL_BACKGROUND_MS; // 15s — mesmo ritmo dos dados quentes
 
             let _gdriveToken    = null;
             let _onedriveToken  = null;
@@ -14320,17 +14368,68 @@ body.dark-mode,
                     .on('postgres_changes', {
                         event: '*', schema: 'public', table: 'docs',
                         filter: 'store_id=eq.' + storeId
-                    }, () => {
-                        // Ignora eco do próprio push (evita pull redundante logo após enviar)
+                    }, (payload) => {
+                        // Ignora eco do próprio push (evita reaplicar o que acabamos de enviar)
                         if (Date.now() - _lastPushTime < 2000) return;
+
+                        // ✅ FASE 3 — TEMPO REAL SEM IDA-E-VOLTA EXTRA: antes, ao
+                        // receber QUALQUER evento do Realtime, o app ignorava o
+                        // conteúdo que o próprio Supabase já manda junto (payload.new)
+                        // e fazia 1-2 consultas extras ao banco só pra "descobrir" o
+                        // que mudou (1ª pra checar updated_at, 2ª pra buscar o dado
+                        // completo). Essa ida-e-volta extra era o principal motivo do
+                        // atraso perceptível entre um aparelho salvar e o outro
+                        // atualizar. Agora aplicamos o payload.new diretamente quando
+                        // reconhecemos o documento — o dado já chega pronto pelo
+                        // próprio evento em tempo real. Em qualquer caso fora do
+                        // esperado (evento sem payload utilizável, exclusão, formato
+                        // desconhecido), caímos de volta no pull tradicional por
+                        // segurança — nunca deixa de sincronizar, só fica um pouco
+                        // mais lento nesse caso raro.
+                        try {
+                            const row = payload && payload.new;
+                            if (row && row.collection === '_cloudsync' && row.doc_id === 'snapshot' && row.data) {
+                                _withSyncLock('cloud:realtimeSnapshot', () => _applyCloudData(row.data, true));
+                                _lastPullTime = Date.now();
+                                return;
+                            }
+                            if (row && row.collection === '_cloudsync' && row.doc_id === 'media' && row.data) {
+                                _withSyncLock('cloud:realtimeMedia', () => _applyMediaData(row.data, true));
+                                if (row.updated_at) localStorage.setItem(_lsMediaFingerprintKey('supabase'), row.updated_at);
+                                return;
+                            }
+                        } catch(e) {
+                            console.warn('[CloudSync] falha ao aplicar payload em tempo real, caindo para pull tradicional:', e && e.message);
+                        }
+                        // Fallback (evento sem payload utilizável, DELETE, ou erro acima)
                         supabasePull(true);
-                        // ✅ FIX SYNC-MEDIA-SUPABASE: qualquer mudança na loja também pode
-                        // ser uma foto/logo novos — supabasePullMedia() é barato quando
-                        // nada mudou (checa updated_at antes de baixar o JSON completo).
                         supabasePullMedia(true).catch(()=>{});
                     })
-                    .subscribe();
+                    .subscribe((status) => {
+                        // ✅ FASE 3 — RECONEXÃO AUTOMÁTICA: em celular é comum o
+                        // navegador suspender a conexão WebSocket quando o app vai
+                        // pra segundo plano. Sem isso, o canal caía silenciosamente e
+                        // o dispositivo passava a depender só do polling (mais lento)
+                        // até alguém recarregar a página manualmente — é uma causa
+                        // provável de sync "lento" mesmo com os tempos reduzidos.
+                        if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                            console.warn('[CloudSync] canal Realtime caiu (status: ' + status + ') — reconectando em 3s...');
+                            if (_sbChannel) { try { _sbClient.removeChannel(_sbChannel); } catch(_e) {} }
+                            _sbChannel = null;
+                            setTimeout(() => { if (_sbUser) _sbSubscribeRealtime(); }, 3000);
+                        }
+                    });
             }
+
+            // ✅ FASE 3: quando a aba volta a ficar visível (usuário troca de app e
+            // volta), reconecta o canal na hora se ele tiver caído, em vez de
+            // esperar o próximo poll — some com o "atraso ao voltar pro app" que é
+            // quando o Realtime de celular mais costuma cair.
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && _sbUser && !_sbChannel) {
+                    _sbSubscribeRealtime();
+                }
+            });
 
             function supabaseDisconnect() {
                 if (_sbChannel) { try { _sbClient.removeChannel(_sbChannel); } catch(e) {} _sbChannel = null; }
@@ -14540,6 +14639,23 @@ body.dark-mode,
                 document.getElementById('cloudPanelGdrive')?.style.setProperty('display',   tab === 'gdrive'    ? 'block' : 'none');
                 document.getElementById('cloudPanelOnedrive')?.style.setProperty('display', tab === 'onedrive'  ? 'block' : 'none');
                 document.getElementById('cloudPanelSupabase')?.style.setProperty('display', tab === 'supabase'  ? 'block' : 'none');
+                // ✅ FIX TELA-BACKUP-DESORGANIZADA: as 3 abas (Drive/OneDrive/Supabase)
+                // eram sempre mostradas com a mesma cor cheia, sem indicar qual está
+                // selecionada — junto com o painel errado ficando visível por padrão
+                // (ver _updateUI abaixo), isso fazia a tela parecer "misturada" (ex:
+                // status dizendo "Supabase conectado" enquanto o painel do Google
+                // Drive aparecia embaixo). Agora a aba ativa fica com destaque total
+                // e as outras ficam visivelmente esmaecidas/recuadas — bem mais fácil
+                // de entender de relance, especialmente em tela pequena de celular.
+                const tabs = { gdrive: 'cloudTabGdrive', onedrive: 'cloudTabOnedrive', supabase: 'cloudTabSupabase' };
+                Object.entries(tabs).forEach(([key, id]) => {
+                    const btn = document.getElementById(id);
+                    if (!btn) return;
+                    const active = key === tab;
+                    btn.style.opacity   = active ? '1' : '0.45';
+                    btn.style.transform = active ? 'translateY(0)' : 'translateY(1px)';
+                    btn.style.boxShadow = active ? '0 0 0 2px rgba(255,255,255,0.55) inset' : 'none';
+                });
             }
 
             function _updateStatus(text) {
@@ -14570,6 +14686,17 @@ body.dark-mode,
                     else if (sOk) status.textContent = '🟢 Supabase — sync em tempo real (Realtime + fallback de polling)';
                     else          status.textContent = '⚫ Nenhum provedor conectado — dados apenas locais';
                 }
+                // ✅ FIX TELA-BACKUP-DESORGANIZADA: antes o painel visível (Drive/
+                // OneDrive/Supabase) nunca acompanhava o status — o texto podia dizer
+                // "Supabase conectado" com o painel do Google Drive (botão "Conectar",
+                // campo Client ID) ainda aberto embaixo, sem relação nenhuma com o que
+                // está realmente em uso. Agora a aba do provedor conectado abre
+                // automaticamente sempre que o status muda — sem exigir que o usuário
+                // clique manualmente pra "achar" onde está a conexão ativa.
+                if (gOk)      showTab('gdrive');
+                else if (oOk) showTab('onedrive');
+                else if (sOk) showTab('supabase');
+                else          showTab('gdrive'); // nenhum conectado ainda — mantém a aba padrão em destaque
                 // Inicializa widget com estado atual — FIX: exibe apenas na primeira ativação
                 if (gOk || oOk || sOk) {
                     if (!_syncActivoShown) {
@@ -14793,6 +14920,22 @@ body.dark-mode,
                 } catch(e) {}
             });
 
+            // ✅ FIX SYNC-REALTIME-TROCA-LOJA: _sbSubscribeRealtime() só cria o canal
+            // se NENHUM já existir (`if (!_sbClient || _sbChannel) return;`) — o
+            // filtro 'store_id=eq.<loja>' fica travado na loja que estava ativa no
+            // momento em que o canal foi criado (login/conexão) e NUNCA era atualizado
+            // ao trocar de loja pelo seletor. Resultado: depois de trocar de loja, o
+            // Realtime continuava "vivo" tecnicamente, mas ouvindo mudanças da loja
+            // ERRADA — a loja nova só voltava a sincronizar em tempo real depois de
+            // um F5 (que recria o canal do zero, já com a loja certa). Esta função
+            // força o descarte do canal antigo e cria um novo já apontando pra loja
+            // atual — deve ser chamada sempre que window._currentStore mudar.
+            function _sbRebindRealtimeForCurrentStore() {
+                if (!_sbClient || !_sbUser) return;
+                if (_sbChannel) { try { _sbClient.removeChannel(_sbChannel); } catch(_e) {} _sbChannel = null; }
+                _sbSubscribeRealtime();
+            }
+
             return {
                 // ── Indicador de tokens: mostra no console o histórico de emissões
                 // de refresh_token deste navegador (diagnóstico do limite de 100
@@ -14825,6 +14968,11 @@ body.dark-mode,
                     if (_activeProvider === 'supabase') return supabasePull(false);
                     return onedrivePull(false);
                 },
+                // ✅ FIX SYNC-REALTIME-TROCA-LOJA: chamado pelo StoreManager.switchTo()
+                // logo após trocar de loja, pra o canal Realtime do Supabase passar a
+                // ouvir a loja nova imediatamente (em vez de continuar preso à loja
+                // anterior até um F5).
+                rebindRealtimeForStore() { _sbRebindRealtimeForCurrentStore(); },
                 // ✅ FIX: StoreManager.switchTo() tentava invalidar o cache do fileId
                 // do Drive ao trocar de loja usando `_gdriveFileIdCache`, uma
                 // propriedade que nunca existiu neste objeto — a chamada sempre foi
@@ -22727,6 +22875,22 @@ tbody tr td{border:1.5px solid #000;padding:2mm;text-align:center;font-weight:70
                     if (btn) { btn.innerHTML = originalHtml; btn.disabled = false; }
                 }
             },
+            // ── Alterna entre as seções da aba Backup (Automático/Manual/Nuvem/Avançado/Risco) ──
+            // Organiza os ícones/ações em grupos em vez de uma rolagem única (visual aprovado em amostra).
+            showBackupSection(sectionName, btnEl) {
+                document.querySelectorAll('.bkp-sec').forEach(sec => sec.classList.remove('active'));
+                const map = { auto: 'bkpSecAuto', manual: 'bkpSecManual', cloud: 'bkpSecCloud', advanced: 'bkpSecAdvanced', risk: 'bkpSecRisk' };
+                const target = document.getElementById(map[sectionName]);
+                if (target) target.classList.add('active');
+
+                document.querySelectorAll('.bkp-nav button').forEach(btn => btn.classList.remove('active'));
+                const active = btnEl || document.querySelector(`.bkp-nav button[data-bkpsec="${sectionName}"]`);
+                if (active) active.classList.add('active');
+
+                // Atualiza painéis com dados ao vivo ao entrar na seção
+                if (sectionName === 'advanced' && window.RxDBPanel) { try { RxDBPanel.refresh(); } catch(_e) {} }
+                if (sectionName === 'cloud' && window.CloudSync) { try { CloudSync._updateUI(); } catch(_e) {} }
+            },
             showTab(tabName, event) {
                 document.querySelectorAll('.config-tab').forEach(tab => {
                     tab.style.display = 'none';
@@ -22755,6 +22919,7 @@ tbody tr td{border:1.5px solid #000;padding:2mm;text-align:center;font-weight:70
                 // Renderiza painel de backup ao abrir a aba
                 if (tabName === 'backup') {
                     this.renderBackupStatus();
+                    this.showBackupSection('auto'); // sempre volta para a seção Automático ao reabrir a aba
                     // Atualiza o widget de sync
                     setTimeout(() => { if(window.LocalFirst) try { if (window.CloudSync) CloudSync._updateUI(); } catch(_e) {} }, 100);
                     // Atualiza painel RxDB com dados em tempo real
@@ -30278,6 +30443,10 @@ const StoreManager = {
         // download, o dado da loja errada não é aplicado.)
         try {
             if (window.CloudSync && CloudSync.connected) {
+                // ✅ FIX SYNC-REALTIME-TROCA-LOJA: sem isso, o canal Realtime do
+                // Supabase continuava escutando a loja ANTERIOR — a loja nova só
+                // recebia atualizações em tempo real depois de um F5.
+                try { CloudSync.rebindRealtimeForStore?.(); } catch(_e3) {}
                 setTimeout(() => {
                     if (window._currentStore !== lojaId) return;
                     CloudSync.forcePull().catch(()=>{});
