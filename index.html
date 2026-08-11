@@ -15270,8 +15270,17 @@ body.dark-mode,
                 if (!_awClient || _awUnsubscribe) return;
                 const storeId = window._currentStore || 'barueri';
                 try {
+                    // ✅ FIX REALTIME TABLESDB: o projeto foi criado como "TablesDB"
+                    // (nome novo do Appwrite pra Databases). O SDK v16 usado aqui é
+                    // anterior a essa renomeação e só conhece o canal antigo
+                    // ("databases...collections...documents"), mas o servidor mais
+                    // novo pode emitir eventos no formato novo ("tablesdb...tables...rows").
+                    // Assina os DOIS formatos — o que o servidor entender, dispara.
                     _awUnsubscribe = _awClient.subscribe(
-                        'databases.' + APPWRITE_DATABASE_ID + '.collections.' + APPWRITE_COLLECTION_ID + '.documents',
+                        [
+                            'databases.' + APPWRITE_DATABASE_ID + '.collections.' + APPWRITE_COLLECTION_ID + '.documents',
+                            'tablesdb.' + APPWRITE_DATABASE_ID + '.tables.' + APPWRITE_COLLECTION_ID + '.rows'
+                        ],
                         (response) => {
                             // Ignora eco do próprio push (evita reaplicar o que acabamos de enviar)
                             if (Date.now() - _lastPushTime < 2000) return;
