@@ -9157,8 +9157,13 @@ body.dark-mode,
             <!-- Seção Configurações -->
             <section id="config" class="section" aria-labelledby="pageTitle">
                 <h2 class="section-title">Configurações do Sistema</h2>
-                <div style="text-align:right;font-size:.72rem;color:#aaa;font-weight:600;margin-top:-0.8rem;margin-bottom:1rem;" title="Data/hora em que esta cópia do sistema foi gerada — compare entre navegadores/dispositivos para saber se estão na mesma versão">
-                    <i class="fas fa-code-branch"></i> Versão instalada: <span id="appBuildVersionTag">13/08/2026 19:58</span>
+
+                <!-- Marca d'água de versão/build — só números (dia/mês/ano/hora),
+                     usada para conferir se todos os dispositivos/navegadores estão
+                     na mesma versão do código. Atualizar manualmente a cada deploy. -->
+                <div id="buildWatermark" title="Versão do sistema (DDMMAAAAHHmm)"
+                     style="position:fixed; right:8px; bottom:6px; z-index:9999; font-size:.85rem; font-family:monospace; color:rgba(0,0,0,.4); background:rgba(255,255,255,.6); padding:2px 6px; border-radius:6px; pointer-events:none; user-select:none;">
+                    versão 140820260949
                 </div>
 
                 <!-- ===== navegação por segmentos (organização visual — mesma linguagem da amostra de Backup) ===== -->
@@ -11085,13 +11090,6 @@ body.dark-mode,
 
     <script>
         // ==================== CONSTANTES E UTILITÁRIOS ====================
-        // ── Marca d'água de versão (ver watermark em Configurações) ───────────
-        // ✅ Atualizar esta string manualmente a cada nova cópia entregue —
-        // é o jeito mais simples de saber, olhando a tela de Configurações
-        // (ou o console), se dois navegadores/dispositivos estão rodando
-        // exatamente o mesmo arquivo ou se um ficou desatualizado.
-        const APP_BUILD_VERSION = '13/08/2026 19:58';
-        console.log('[ÓticaMegaVision Pro] Versão instalada:', APP_BUILD_VERSION);
         window._currentStore = 'barueri';
         const STORAGE_KEY_BASE = 'optic_pro_data';
         function STORAGE_KEY() { return STORAGE_KEY_BASE + '_' + window._currentStore; }
@@ -12397,23 +12395,8 @@ body.dark-mode,
                                 // apagar os dados locais. Agora só carimbamos "now" quando
                                 // o item realmente não tem _updatedAt ainda (item legado);
                                 // caso contrário preservamos o timestamp que já existia.
-                                // ✅ FIX DELTA-SYNC (loop de re-push do catálogo inteiro):
-                                // o fallback acima checava só "item._updatedAt" — mas várias
-                                // coleções (ex: clients, products) gravam o carimbo no campo
-                                // "updated_at" (snake_case) ou "updatedAt", não "_updatedAt".
-                                // Como esses itens nunca têm "_updatedAt" de verdade, o
-                                // fallback caía em "now" em TODO ciclo, gravando um
-                                // "_updatedAt" sintético que sempre avançava. Esse valor
-                                // sintético depois voltava para state[] no próximo
-                                // _fetchAllData() (via IndexedDB local) e passava a "vencer"
-                                // a comparação de _itemUpdatedAt() no delta push — fazendo o
-                                // catálogo INTEIRO parecer "alterado agora" a cada ciclo de
-                                // sync, virando delta em push completo (e pesado) toda vez.
-                                // Agora checamos as mesmas 3 variantes que _itemUpdatedAt()
-                                // usa em todo o resto do código, então um item que já tem
-                                // "updated_at"/"updatedAt" nunca ganha um "_updatedAt" novo.
-                                data:       { ...item, _store: storeId, _updatedAt: item._updatedAt || item.updatedAt || item.updated_at || now },
-                                updated_at: item._updatedAt || item.updatedAt || item.updated_at || now
+                                data:       { ...item, _store: storeId, _updatedAt: item._updatedAt || now },
+                                updated_at: item._updatedAt || now
                             }));
                             try { await sbUpsertBatch(rows); total += chunk.length; }
                             catch(e) { erros++; console.error('[RxDB v17] rewriteAll', col, e.message); }
@@ -13620,6 +13603,14 @@ body.dark-mode,
                     } catch(_e) {}
                 }
 
+                // ✅ FIX FALLBACK-DELTA: coleta erros de merge quando remote é parcial
+                // (delta). Diferente do snapshot completo, um delta que falha parcialmente
+                // não pode ser considerado "aplicado com sucesso" — senão o cursor avança
+                // e aquela mudança nunca mais é buscada. Ao final, se houver erro E for
+                // delta, relançamos pra quem chamou (_supabaseDeltaPull/_appwriteDeltaPull/
+                // Realtime) cair automaticamente no pull completo.
+                const _mergeErrors = [];
+
                 // ✅ CORRIGIDO: Merge inteligente por item — evita sobrescrever dados locais mais recentes.
                 // Antes: state[k] = remote[k] substituía TUDO pelos dados remotos, apagando
                 // alterações locais que ainda não tinham sido enviadas para a nuvem.
@@ -13712,6 +13703,7 @@ body.dark-mode,
                     state[k] = Object.values(merged);
                   } catch(mergeErr) {
                     console.error('[CloudSync] ⚠️ Merge de "' + k + '" falhou — coleções seguintes NÃO foram afetadas:', mergeErr);
+                    _mergeErrors.push(k);
                   }
                 });
 
@@ -13776,7 +13768,17 @@ body.dark-mode,
                         }
                     } catch(usersMergeErr) {
                         console.error('[CloudSync] ⚠️ Merge de usuários falhou:', usersMergeErr);
+                        _mergeErrors.push('users');
                     }
+                }
+
+                // ✅ FIX FALLBACK-DELTA: se este remote é parcial (delta) e algum
+                // merge acima falhou, não seguimos como se tivesse dado certo.
+                // Relança pra quem chamou (_supabaseDeltaPull/_appwriteDeltaPull/
+                // handler do Realtime) cair automaticamente no pull completo —
+                // que reconstrói tudo do zero e corrige o que ficou pra trás.
+                if (remote._isDelta && _mergeErrors.length) {
+                    throw new Error('Falha ao aplicar delta em: ' + _mergeErrors.join(', ') + ' — necessário fallback para sync completo.');
                 }
                 // FIX SYNC: aplica company com deep merge para garantir que logo e
                 // todos os campos sejam copiados (não apenas os que existem localmente)
@@ -13961,7 +13963,7 @@ body.dark-mode,
             //     tombstones), só alimentando ela com um objeto parcial em
             //     vez do snapshot inteiro.
             // ════════════════════════════════════════════════════════════════
-            const DELTA_SYNC_ENABLED = true; // ✅ ativado — fallback automático para o caminho completo em caso de falha (mesmo padrão do mídia)
+            const DELTA_SYNC_ENABLED = false; // ⚠️ ligar só após validar em uma loja piloto (ver relatório)
             // Coleções elegíveis para delta item-a-item — as mesmas já usadas
             // no merge genérico de _applyCloudData (cada item já carrega seu
             // próprio _updatedAt/updatedAt/updated_at).
@@ -13973,6 +13975,11 @@ body.dark-mode,
             function _lsDeltaPushTsKey(provider) { return 'cs_delta_push_ts_' + provider + '_' + (window._currentStore || 'barueri'); }
             function _lsDeltaPullTsKey(provider) { return 'cs_delta_pull_ts_' + provider + '_' + (window._currentStore || 'barueri'); }
             function _lsFullSnapshotTsKey(provider) { return 'cs_full_snapshot_push_ts_' + provider + '_' + (window._currentStore || 'barueri'); }
+            // ✅ FIX FALLBACK-DELTA (item 2): checkpoint de PULL completo, espelhando
+            // o checkpoint de push acima. Roda mesmo quando o delta pull "dá certo",
+            // como rede de segurança periódica — corrige qualquer divergência que
+            // não tenha gerado uma exceção (e por isso não acionou o fallback normal).
+            function _lsFullPullSnapshotTsKey(provider) { return 'cs_full_snapshot_pull_ts_' + provider + '_' + (window._currentStore || 'barueri'); }
             function _lsMetaHashKey(provider) { return 'cs_delta_meta_hash_' + provider + '_' + (window._currentStore || 'barueri'); }
 
             function _itemUpdatedAt(item) {
@@ -14035,7 +14042,11 @@ body.dark-mode,
             // merge existente, tombstone a tombstone, coleção a coleção.
             function _buildPartialRemoteFromRows(rows) {
                 const storeId = window._currentStore || 'barueri';
-                const partial = { _rxdb: 'v17', _store: storeId, _ts: new Date().toISOString(), tombstones: [] };
+                // ✅ FIX FALLBACK-DELTA: marca este objeto como parcial (delta), não
+                // snapshot completo. _applyCloudData usa essa flag pra decidir se
+                // deve relançar erros de merge (pra acionar o fallback automático
+                // pro sync completo) em vez de só engolir e seguir em frente.
+                const partial = { _rxdb: 'v17', _store: storeId, _ts: new Date().toISOString(), tombstones: [], _isDelta: true };
                 (rows || []).forEach(row => {
                     if (!row || row.data === undefined || row.data === null) return;
                     if (row.collection === '_tombstone') {
@@ -15386,14 +15397,7 @@ body.dark-mode,
 
                 if (allRows.length) {
                     const partial = _buildPartialRemoteFromRows(allRows);
-                    // ✅ FIX: antes chamava sempre com silent=true, mesmo quando o
-                    // pull era manual (botão "Baixar", silent=false/undefined) —
-                    // igual ao _supabaseFullPull faz corretamente logo acima. Isso
-                    // não bloqueava a atualização da tela (os renders no fim de
-                    // _applyCloudData rodam sempre), mas escondia qualquer aviso
-                    // relevante (ex: "arquivo inválido") quando o usuário clicava
-                    // manualmente em Baixar com o delta ligado.
-                    await _withSyncLock('cloud:supabaseDeltaPull', () => _applyCloudData(partial, silent));
+                    await _withSyncLock('cloud:supabaseDeltaPull', () => _applyCloudData(partial, true));
                     const maxTs = allRows.reduce((m, r) => {
                         const t = new Date(r.updated_at).getTime();
                         return t > m ? t : m;
@@ -15401,6 +15405,18 @@ body.dark-mode,
                     _lsSet(pullCursorKey, new Date(maxTs).toISOString());
                 }
                 _lastPullTime = Date.now();
+
+                // ✅ FIX FALLBACK-DELTA (item 2): checkpoint periódico de pull completo,
+                // best-effort — não derruba o pull delta se falhar. Roda mesmo quando
+                // o delta "deu certo", pra corrigir qualquer divergência silenciosa.
+                const fpKey = _lsFullPullSnapshotTsKey('supabase');
+                const lastFp = _lsGet(fpKey);
+                if (!lastFp || (Date.now() - new Date(lastFp).getTime()) > FULL_SNAPSHOT_CHECKPOINT_MS) {
+                    try {
+                        await _supabaseFullPull(storeId, true);
+                        _lsSet(fpKey, new Date().toISOString());
+                    } catch(_e) { /* checkpoint é best-effort */ }
+                }
             }
 
             async function supabasePush(silent) {
@@ -15416,6 +15432,7 @@ body.dark-mode,
                             return;
                         } catch(e) {
                             console.warn('[CloudSync] delta push (Supabase) falhou, caindo para push completo:', e && e.message);
+                            if (!silent) Toast.show('🔄 Sync delta falhou — corrigindo com sync completo', 'info', 2500);
                             // segue para o caminho completo abaixo (fallback)
                         }
                     }
@@ -15441,6 +15458,9 @@ body.dark-mode,
                             return;
                         } catch(e) {
                             console.warn('[CloudSync] delta pull (Supabase) falhou, caindo para pull completo:', e && e.message);
+                            // ✅ FIX FALLBACK-DELTA: aviso visível (não-bloqueante) pra dar
+                            // pra confirmar em teste que a rede de segurança realmente agiu.
+                            if (!silent) Toast.show('🔄 Sync delta falhou — corrigindo com sync completo', 'info', 2500);
                             // segue para o caminho completo abaixo (fallback)
                         }
                     }
@@ -15994,6 +16014,17 @@ body.dark-mode,
                     _lsSet(pullCursorKey, new Date(maxTs).toISOString());
                 }
                 _lastPullTime = Date.now();
+
+                // ✅ FIX FALLBACK-DELTA (item 2): checkpoint periódico de pull completo,
+                // espelhando o checkpoint de push. Best-effort.
+                const fpKey = _lsFullPullSnapshotTsKey('appwrite');
+                const lastFp = _lsGet(fpKey);
+                if (!lastFp || (Date.now() - new Date(lastFp).getTime()) > FULL_SNAPSHOT_CHECKPOINT_MS) {
+                    try {
+                        await _appwriteFullPull(true);
+                        _lsSet(fpKey, new Date().toISOString());
+                    } catch(_e) { /* checkpoint é best-effort */ }
+                }
             }
 
             async function appwritePush(silent) {
@@ -16009,6 +16040,7 @@ body.dark-mode,
                             return;
                         } catch(e) {
                             console.warn('[CloudSync] delta push (Appwrite) falhou, caindo para push completo:', e && e.message);
+                            if (!silent) Toast.show('🔄 Sync delta falhou — corrigindo com sync completo', 'info', 2500);
                         }
                     }
                     await _appwriteFullPush(storeId);
@@ -16033,6 +16065,7 @@ body.dark-mode,
                             return;
                         } catch(e) {
                             console.warn('[CloudSync] delta pull (Appwrite) falhou, caindo para pull completo:', e && e.message);
+                            if (!silent) Toast.show('🔄 Sync delta falhou — corrigindo com sync completo', 'info', 2500);
                         }
                     }
                     await _appwriteFullPull(silent);
@@ -30622,9 +30655,6 @@ ${container.innerHTML}
 
         // ==================== INICIALIZAÇÃO ====================
         document.addEventListener('DOMContentLoaded', async () => {
-            // Marca d'água de versão em Configurações — sempre a partir da
-            // constante única (APP_BUILD_VERSION), nunca hardcoded duas vezes.
-            try { const _tag = document.getElementById('appBuildVersionTag'); if (_tag) _tag.textContent = APP_BUILD_VERSION; } catch(e) {}
             // ✅ Corrige a estrutura de rolagem das tabelas (ver TableScrollFix
             // acima) antes de qualquer outra coisa — independe de login/sessão.
             try { if (window.TableScrollFix) TableScrollFix.init(); } catch(e) {}
