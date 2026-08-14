@@ -9163,7 +9163,7 @@ body.dark-mode,
                      na mesma versão do código. Atualizar manualmente a cada deploy. -->
                 <div id="buildWatermark" title="Versão do sistema (DDMMAAAAHHmm)"
                      style="position:fixed; right:8px; bottom:6px; z-index:9999; font-size:.85rem; font-family:monospace; color:rgba(0,0,0,.4); background:rgba(255,255,255,.6); padding:2px 6px; border-radius:6px; pointer-events:none; user-select:none;">
-                    versão 140820260949
+                    versão 140820261458
                 </div>
 
                 <!-- ===== navegação por segmentos (organização visual — mesma linguagem da amostra de Backup) ===== -->
@@ -13963,7 +13963,7 @@ body.dark-mode,
             //     tombstones), só alimentando ela com um objeto parcial em
             //     vez do snapshot inteiro.
             // ════════════════════════════════════════════════════════════════
-            const DELTA_SYNC_ENABLED = false; // ⚠️ ligar só após validar em uma loja piloto (ver relatório)
+            const DELTA_SYNC_ENABLED = true; // ✅ ativado — fallback automático (merge + checkpoint de pull) validado nesta versão
             // Coleções elegíveis para delta item-a-item — as mesmas já usadas
             // no merge genérico de _applyCloudData (cada item já carrega seu
             // próprio _updatedAt/updatedAt/updated_at).
