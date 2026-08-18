@@ -13283,6 +13283,63 @@ body.dark-mode,
             // Comprime uma string (JSON) e devolve um base64 gzip, ou null se o
             // navegador não suportar CompressionStream — quem chama cai para o
             // formato cru (sem compressão) nesse caso.
+            // ══════════════════════════════════════════════════════════════════════
+            //  FIX TRAVAMENTO DELTA SYNC: o snapshot completo (checkpoint periódico
+            //  a cada 5min + fallback quando o delta falha) fazia JSON.stringify()/
+            //  JSON.parse() do payload inteiro da loja (milhares de vendas/clientes)
+            //  DIRETO na thread principal — em lojas grandes isso bloqueia a UI por
+            //  um bom tempo, sentido pelo usuário como "o app trava". Move esse
+            //  trabalho pesado para um Web Worker; se o Worker não estiver disponível
+            //  ou falhar por qualquer motivo, cai de volta pro JSON.stringify/parse
+            //  síncrono de sempre (nunca quebra o fluxo, só deixa de ganhar o
+            //  benefício de performance nesse caso raro).
+            // ══════════════════════════════════════════════════════════════════════
+            const _jsonWorker = (function() {
+                if (typeof Worker === 'undefined') return null;
+                try {
+                    const code = "self.onmessage=function(e){var d=e.data;try{var r=d.action==='stringify'?JSON.stringify(d.payload):JSON.parse(d.payload);self.postMessage({id:d.id,result:r});}catch(err){self.postMessage({id:d.id,error:err.message});}};";
+                    const blob = new Blob([code], { type: 'application/javascript' });
+                    const worker = new Worker(URL.createObjectURL(blob));
+                    worker._pending = {};
+                    worker.onmessage = (e) => {
+                        const { id, result, error } = e.data;
+                        const p = worker._pending[id];
+                        if (!p) return;
+                        delete worker._pending[id];
+                        if (error) p.reject(new Error(error)); else p.resolve(result);
+                    };
+                    worker.onerror = () => {};
+                    return worker;
+                } catch(_e) { return null; }
+            })();
+            let _jsonWorkerSeq = 0;
+            function _workerStringify(obj, timeoutMs = 5000) {
+                if (!_jsonWorker) return Promise.resolve(JSON.stringify(obj));
+                return new Promise((resolve) => {
+                    const id = ++_jsonWorkerSeq;
+                    const timer = setTimeout(() => { delete _jsonWorker._pending[id]; resolve(JSON.stringify(obj)); }, timeoutMs);
+                    _jsonWorker._pending[id] = {
+                        resolve: (r) => { clearTimeout(timer); resolve(r); },
+                        reject:  ()  => { clearTimeout(timer); resolve(JSON.stringify(obj)); }
+                    };
+                    try { _jsonWorker.postMessage({ id, action: 'stringify', payload: obj }); }
+                    catch(_e) { clearTimeout(timer); delete _jsonWorker._pending[id]; resolve(JSON.stringify(obj)); }
+                });
+            }
+            function _workerParse(str, timeoutMs = 5000) {
+                if (!_jsonWorker) return Promise.resolve(JSON.parse(str));
+                return new Promise((resolve) => {
+                    const id = ++_jsonWorkerSeq;
+                    const timer = setTimeout(() => { delete _jsonWorker._pending[id]; resolve(JSON.parse(str)); }, timeoutMs);
+                    _jsonWorker._pending[id] = {
+                        resolve: (r) => { clearTimeout(timer); resolve(r); },
+                        reject:  ()  => { clearTimeout(timer); resolve(JSON.parse(str)); }
+                    };
+                    try { _jsonWorker.postMessage({ id, action: 'parse', payload: str }); }
+                    catch(_e) { clearTimeout(timer); delete _jsonWorker._pending[id]; resolve(JSON.parse(str)); }
+                });
+            }
+
             async function _gzipStringToBase64(str) {
                 try {
                     if (typeof CompressionStream === 'undefined') return null;
@@ -13332,7 +13389,7 @@ body.dark-mode,
             async function _decodeSyncSnapshot(raw) {
                 if (raw && typeof raw === 'object' && raw._gz === 1 && typeof raw.b === 'string') {
                     const jsonStr = await _gunzipBase64ToString(raw.b);
-                    return JSON.parse(jsonStr);
+                    return await _workerParse(jsonStr);
                 }
                 return raw; // formato antigo: já é o objeto cru
             }
@@ -13342,9 +13399,9 @@ body.dark-mode,
             async function _decodeSyncSnapshotStr(raw) {
                 if (typeof raw === 'string' && raw.startsWith('GZ1:')) {
                     const jsonStr = await _gunzipBase64ToString(raw.slice(4));
-                    return JSON.parse(jsonStr);
+                    return await _workerParse(jsonStr);
                 }
-                return JSON.parse(raw); // formato antigo: JSON cru
+                return await _workerParse(raw); // formato antigo: JSON cru
             }
 
             // ── Coleta TODOS os dados (incluindo company, logo e config) ─────
@@ -14791,7 +14848,7 @@ body.dark-mode,
                     // engordava cada transferência sem nenhum benefício, já que ninguém lê
                     // esse arquivo manualmente. Reduz o tamanho do payload (~15-25%) em toda
                     // sincronização, ajudando especialmente em conexões móveis mais lentas.
-                    const data = JSON.stringify(_collectAllData());
+                    const data = await _workerStringify(_collectAllData());
                     const fileId = await _gdriveGetOrCreateFileId();
                     if (fileId) {
                         // Atualiza arquivo existente
@@ -15137,7 +15194,7 @@ body.dark-mode,
 
                     // ✅ FIX PERFORMANCE-SYNC: ver mesma correção em gdrivePush — remove
                     // indentação desnecessária do JSON re-transmitido a cada ciclo de sync.
-                    const data = JSON.stringify(_collectAllData());
+                    const data = await _workerStringify(_collectAllData());
                     const r = await _fetchTimeout(
                         'https://graph.microsoft.com/v1.0/me/drive/root:/' + encodeURIComponent(_fileName()) + ':/content',
                         { method: 'PUT', headers: { Authorization: 'Bearer ' + _onedriveToken.access_token, 'Content-Type': 'application/json' }, body: data }
@@ -15274,7 +15331,7 @@ body.dark-mode,
                 // ── Compressão (aprovada): tenta comprimir o snapshot antes
                 // de enviar. Se falhar/não suportado, envia cru (formato
                 // antigo) — _supabaseFullPull/_sbSubscribeRealtime leem os dois.
-                const gz = await _gzipStringToBase64(JSON.stringify(payload));
+                const gz = await _gzipStringToBase64(await _workerStringify(payload));
                 const dataToSend = gz ? { _gz: 1, b: gz } : payload;
                 const { error } = await _sbClient.from('docs').upsert({
                     store_id:   storeId,
@@ -15861,6 +15918,21 @@ body.dark-mode,
                 }
             }
 
+            // ── Appwrite: autentica em segundo plano SEM virar o provider ativo ──
+            // Usada só para deixar o Appwrite pronto como failover do Supabase
+            // (etapa 2 aprovada). Ao contrário de _awResumeSession(), esta função
+            // NUNCA muda _activeProvider nem dispara pull/polling/realtime —
+            // só garante que _awUser/_awDatabases estejam prontos para o momento
+            // em que o Supabase falhar e o failover precisar agir imediatamente.
+            async function _awResumeSessionStandby() {
+                try {
+                    const { account } = await _awEnsureClient();
+                    const user = await account.get();
+                    if (user) { _awUser = user; return true; }
+                } catch(e) { /* sem sessão salva do Appwrite — segue sem failover disponível */ }
+                return false;
+            }
+
             async function _awResumeSession() {
                 // Restaura sessão salva pelo próprio Appwrite (cookie/localStorage interno do SDK)
                 try {
@@ -15886,7 +15958,7 @@ body.dark-mode,
                 // ── Compressão (aprovada): mesmo padrão do Supabase — prefixo
                 // "GZ1:" identifica payload comprimido; se a compressão
                 // falhar/não for suportada, envia o JSON cru (formato antigo).
-                const jsonStr = JSON.stringify(payload);
+                const jsonStr = await _workerStringify(payload);
                 const gz = await _gzipStringToBase64(jsonStr);
                 const dataStr = gz ? ('GZ1:' + gz) : jsonStr;
                 const body = {
@@ -16399,6 +16471,36 @@ body.dark-mode,
                 if (_mediaPollTimer) { clearTimeout(_mediaPollTimer); _mediaPollTimer = null; }
             }
 
+            // ══════════════════════════════════════════════════════════════════
+            //  FAILOVER Supabase → Appwrite (etapa 2 aprovada)
+            //  Só entra em ação nos ciclos AUTOMÁTICOS (silent) quando o Supabase
+            //  é o provider ativo e falha algumas vezes seguidas — não interfere
+            //  em push/pull manual (botão), que já mostra o erro direto ao usuário.
+            //  Volta a usar só o Supabase sozinho assim que ele funcionar de novo.
+            // ══════════════════════════════════════════════════════════════════
+            let _sbConsecutiveFails = 0;
+            let _inFailover = false;
+            const SB_FAILOVER_THRESHOLD = 2;
+            function _sbFailoverOnSuccess() {
+                if (_sbConsecutiveFails > 0 || _inFailover) {
+                    console.log('[Failover] ✅ Supabase voltou a responder — encerrando modo de backup (Appwrite).');
+                }
+                _sbConsecutiveFails = 0;
+                _inFailover = false;
+            }
+            function _sbFailoverOnFailure(kind) {
+                _sbConsecutiveFails++;
+                if (_sbConsecutiveFails >= SB_FAILOVER_THRESHOLD && _awUser) {
+                    if (!_inFailover) {
+                        _inFailover = true;
+                        console.warn('[Failover] ⚠️ Supabase indisponível (' + _sbConsecutiveFails + ' falhas) — usando Appwrite como backup temporário.');
+                        try { Toast.show('⚠️ Backend principal indisponível — usando backup automático', 'warning', 4000); } catch(_e) {}
+                    }
+                    return true; // sinaliza que deve acionar o Appwrite
+                }
+                return false;
+            }
+
             function _silentPull() {
                 // FIX DELETE-SYNC: não faz pull enquanto há push pendente.
                 // Evita a race condition: delete → poll puxa dado antigo → restaura item.
@@ -16417,7 +16519,11 @@ body.dark-mode,
                 try {
                     if (_activeProvider === 'gdrive'   && _gdriveToken)                                  gdrivePull(true).catch(()=>{});
                     if (_activeProvider === 'onedrive' && _onedriveToken && !_isExpired(_onedriveToken)) onedrivePull(true).catch(()=>{});
-                    if (_activeProvider === 'supabase' && _sbUser)                                        supabasePull(true).catch(()=>{});
+                    if (_activeProvider === 'supabase' && _sbUser) {
+                        supabasePull(true).then(_sbFailoverOnSuccess).catch(() => {
+                            if (_sbFailoverOnFailure('pull')) appwritePull(true).catch(()=>{});
+                        });
+                    }
                     if (_activeProvider === 'appwrite' && _awUser)                                        appwritePull(true).catch(()=>{});
                 } catch(e) {}
             }
@@ -16441,7 +16547,11 @@ body.dark-mode,
                 try {
                     if (_activeProvider === 'gdrive'   && _gdriveToken)                                  gdrivePush(true).catch(()=>{});
                     if (_activeProvider === 'onedrive' && _onedriveToken && !_isExpired(_onedriveToken)) onedrivePush(true).catch(()=>{});
-                    if (_activeProvider === 'supabase' && _sbUser)                                        supabasePush(true).catch(()=>{});
+                    if (_activeProvider === 'supabase' && _sbUser) {
+                        supabasePush(true).then(_sbFailoverOnSuccess).catch(() => {
+                            if (_sbFailoverOnFailure('push')) appwritePush(true).catch(()=>{});
+                        });
+                    }
                     if (_activeProvider === 'appwrite' && _awUser)                                        appwritePush(true).catch(()=>{});
                 } catch(e) {}
             }
@@ -16827,7 +16937,20 @@ body.dark-mode,
                     }
                 }
                 if (_activeProvider === 'onedrive' && _onedriveToken && !_isExpired(_onedriveToken)) { _startPolling(); setTimeout(() => onedrivePull(true).catch(()=>{}), 1500); }
-                if (_activeProvider === 'supabase') { _sbResumeSession(); }
+                if (_activeProvider === 'supabase') {
+                    _sbResumeSession();
+                    // ══════════════════════════════════════════════════════════
+                    //  FAILOVER (etapa 2 aprovada): Supabase é o backend primário;
+                    //  Appwrite fica como redundância. Para que o failover funcione
+                    //  na hora que precisar (sem esperar o usuário conectar o
+                    //  Appwrite manualmente), autenticamos a sessão do Appwrite em
+                    //  segundo plano AQUI — só autentica (_awUser/_awDatabases
+                    //  ficam prontos), NÃO muda _activeProvider nem faz pull/push/
+                    //  polling/realtime do Appwrite. Ele só entra em ação de fato
+                    //  se o Supabase falhar (ver _silentPush/_silentPull).
+                    // ══════════════════════════════════════════════════════════
+                    _awResumeSessionStandby();
+                }
                 if (_activeProvider === 'appwrite') { _awResumeSession(); }
                 // FIX: mostra banner se token expirado logo na abertura
                 setTimeout(_checkTokenExpiry, 3000);
