@@ -9589,7 +9589,7 @@ body.dark-mode,
                                 <div class="bkp-status-ic" style="background:#f3f0ff;color:#7c3aed;"><i class="fas fa-code-branch"></i></div>
                                 <div class="txt">
                                     <b>Versão do sistema</b>
-                                    <span>versão <strong>170820262329</strong></span>
+                                    <span>versão <strong>170820262347</strong></span>
                                 </div>
                             </div>
                         </div>
@@ -15287,25 +15287,31 @@ body.dark-mode,
                 _lastPushTime = Date.now();
             }
 
-            async function _supabaseFullPull(storeId, silent) {
-                // ✅ FIX EGRESS (relatório aprovado): checagem leve — só o
-                // updated_at — antes de baixar o snapshot completo (que pode
-                // ser grande). Mesma técnica já usada no pull de mídia. Como
-                // isso roda a cada poll (5s antes, agora bem menos frequente),
-                // pular o download quando nada mudou é o maior ganho de egress.
+            async function _supabaseFullPull(storeId, silent, forceFull) {
+                // ✅ FIX BUG FALLBACK-DELTA-SILENCIOSO: com o delta sync ativo, as
+                // mudanças são gravadas linha a linha e NÃO tocam mais o documento
+                // "_cloudsync/snapshot" — então o updated_at dele fica "congelado"
+                // no valor do último push completo. A checagem leve abaixo (que
+                // compara esse updated_at com o fingerprint salvo) só é segura
+                // quando o pull completo É o caminho principal (delta desligado).
+                // Quando é bootstrap, checkpoint ou fallback do delta, forceFull=true
+                // ignora essa checagem — senão o app "acha" que nada mudou e não
+                // sincroniza de verdade, mesmo depois de avisar que ia corrigir.
                 const fpKey = _lsFullPullFingerprintKey('supabase');
-                const { data: meta, error: metaErr } = await _sbClient.from('docs')
-                    .select('updated_at')
-                    .eq('store_id', storeId).eq('collection', '_cloudsync').eq('doc_id', 'snapshot')
-                    .maybeSingle();
-                if (metaErr) throw metaErr;
-                if (!meta) { _lastPullTime = Date.now(); return; } // nenhum snapshot enviado ainda
-                if (meta.updated_at && meta.updated_at === localStorage.getItem(fpKey)) {
-                    _lastPullTime = Date.now();
-                    return; // nada mudou desde o último pull completo
+                if (!forceFull) {
+                    const { data: meta, error: metaErr } = await _sbClient.from('docs')
+                        .select('updated_at')
+                        .eq('store_id', storeId).eq('collection', '_cloudsync').eq('doc_id', 'snapshot')
+                        .maybeSingle();
+                    if (metaErr) throw metaErr;
+                    if (!meta) { _lastPullTime = Date.now(); return; } // nenhum snapshot enviado ainda
+                    if (meta.updated_at && meta.updated_at === localStorage.getItem(fpKey)) {
+                        _lastPullTime = Date.now();
+                        return; // nada mudou desde o último pull completo
+                    }
                 }
                 const { data, error } = await _sbClient.from('docs')
-                    .select('data')
+                    .select('data,updated_at')
                     .eq('store_id', storeId).eq('collection', '_cloudsync').eq('doc_id', 'snapshot')
                     .maybeSingle();
                 if (error) throw error;
@@ -15313,7 +15319,7 @@ body.dark-mode,
                     const remote = await _decodeSyncSnapshot(data.data);
                     await _withSyncLock('cloud:supabasePull', () => _applyCloudData(remote, silent));
                 }
-                if (meta.updated_at) localStorage.setItem(fpKey, meta.updated_at);
+                if (data && data.updated_at) localStorage.setItem(fpKey, data.updated_at);
                 _lastPullTime = Date.now();
             }
 
@@ -15376,7 +15382,7 @@ body.dark-mode,
                     // Bootstrap: sem baseline ainda — pull COMPLETO tradicional
                     // pra estabelecer o ponto de partida, e o cursor do delta
                     // passa a valer a partir de agora.
-                    await _supabaseFullPull(storeId, silent);
+                    await _supabaseFullPull(storeId, silent, true);
                     _lsSet(pullCursorKey, new Date().toISOString());
                     return;
                 }
@@ -15426,7 +15432,7 @@ body.dark-mode,
                 const lastFp = _lsGet(fpKey);
                 if (!lastFp || (Date.now() - new Date(lastFp).getTime()) > FULL_SNAPSHOT_CHECKPOINT_MS) {
                     try {
-                        await _supabaseFullPull(storeId, true);
+                        await _supabaseFullPull(storeId, true, true);
                         _lsSet(fpKey, new Date().toISOString());
                     } catch(_e) { /* checkpoint é best-effort */ }
                 }
@@ -15465,6 +15471,7 @@ body.dark-mode,
                 _pulling = true;
                 try {
                     const storeId = window._currentStore || 'barueri';
+                    let deltaFailed = false;
                     if (DELTA_SYNC_ENABLED) {
                         try {
                             await _supabaseDeltaPull(storeId, silent);
@@ -15474,10 +15481,15 @@ body.dark-mode,
                             // ✅ FIX FALLBACK-DELTA: aviso visível (não-bloqueante) pra dar
                             // pra confirmar em teste que a rede de segurança realmente agiu.
                             if (!silent) Toast.show('🔄 Sync delta falhou — corrigindo com sync completo', 'info', 2500);
+                            deltaFailed = true;
                             // segue para o caminho completo abaixo (fallback)
                         }
                     }
-                    await _supabaseFullPull(storeId, silent);
+                    // forceFull=true quando é fallback de um delta que falhou (precisa
+                    // de um pull de verdade, ignorando o fingerprint que o delta não
+                    // mantém atualizado). Quando o delta está desligado, o fingerprint
+                    // continua valendo normalmente (economia de egress do item 1).
+                    await _supabaseFullPull(storeId, silent, deltaFailed);
                 } catch(e) {
                     console.warn('[CloudSync] supabasePull falhou:', e.message);
                 } finally {
@@ -15893,22 +15905,31 @@ body.dark-mode,
                 _lastPushTime = Date.now();
             }
 
-            async function _appwriteFullPull(silent) {
-                // ✅ FIX EGRESS (relatório aprovado): mesma ideia do Supabase —
-                // tenta buscar só o campo updated_at primeiro (Query.select) pra
-                // decidir se vale a pena baixar o documento inteiro. Se esta
-                // versão do SDK não suportar Query.select aqui, cai sem erro
-                // pro comportamento anterior (sempre baixa completo).
+            async function _appwriteFullPull(silent, forceFull) {
+                // ✅ FIX EGRESS (relatório aprovado): tenta buscar só o campo
+                // updated_at primeiro (Query.select) pra decidir se vale a pena
+                // baixar o documento inteiro. Se esta versão do SDK não suportar
+                // Query.select aqui, cai sem erro pro comportamento anterior
+                // (sempre baixa completo).
+                // ✅ FIX BUG FALLBACK-DELTA-SILENCIOSO: com delta sync ativo, esse
+                // documento "snapshot" não é mais tocado pelas mudanças do dia a
+                // dia (elas vão pra documentos individuais), então seu updated_at
+                // fica congelado — a checagem abaixo ficaria sempre "igual" e o
+                // pull completo nunca rodaria de verdade. Bootstrap, checkpoint e
+                // fallback do delta chamam com forceFull=true pra sempre garantir
+                // um pull real nesses casos.
                 const fpKey = _lsFullPullFingerprintKey('appwrite');
-                try {
-                    const { Query } = window.Appwrite;
-                    const meta = await _awDatabases.getDocument(APPWRITE_DATABASE_ID, APPWRITE_COLLECTION_ID, _awDocId('snapshot'), [Query.select(['updated_at'])]);
-                    if (meta && meta.updated_at && meta.updated_at === localStorage.getItem(fpKey)) {
-                        _lastPullTime = Date.now();
-                        return; // nada mudou desde o último pull completo
+                if (!forceFull) {
+                    try {
+                        const { Query } = window.Appwrite;
+                        const meta = await _awDatabases.getDocument(APPWRITE_DATABASE_ID, APPWRITE_COLLECTION_ID, _awDocId('snapshot'), [Query.select(['updated_at'])]);
+                        if (meta && meta.updated_at && meta.updated_at === localStorage.getItem(fpKey)) {
+                            _lastPullTime = Date.now();
+                            return; // nada mudou desde o último pull completo
+                        }
+                    } catch(e) {
+                        // 404, ou select não suportado nesta versão do SDK — segue pro pull completo abaixo
                     }
-                } catch(e) {
-                    // 404, ou select não suportado nesta versão do SDK — segue pro pull completo abaixo
                 }
                 let doc = null;
                 try {
@@ -15997,7 +16018,7 @@ body.dark-mode,
                 const pullCursorKey = _lsDeltaPullTsKey('appwrite');
                 const cursorIso = _lsGet(pullCursorKey);
                 if (!cursorIso) {
-                    await _appwriteFullPull(silent);
+                    await _appwriteFullPull(silent, true);
                     _lsSet(pullCursorKey, new Date().toISOString());
                     return;
                 }
@@ -16051,7 +16072,7 @@ body.dark-mode,
                 const lastFp = _lsGet(fpKey);
                 if (!lastFp || (Date.now() - new Date(lastFp).getTime()) > FULL_SNAPSHOT_CHECKPOINT_MS) {
                     try {
-                        await _appwriteFullPull(true);
+                        await _appwriteFullPull(true, true);
                         _lsSet(fpKey, new Date().toISOString());
                     } catch(_e) { /* checkpoint é best-effort */ }
                 }
@@ -16089,6 +16110,7 @@ body.dark-mode,
                 _pulling = true;
                 try {
                     const storeId = window._currentStore || 'barueri';
+                    let deltaFailed = false;
                     if (DELTA_SYNC_ENABLED) {
                         try {
                             await _appwriteDeltaPull(storeId, silent);
@@ -16096,9 +16118,10 @@ body.dark-mode,
                         } catch(e) {
                             console.warn('[CloudSync] delta pull (Appwrite) falhou, caindo para pull completo:', e && e.message);
                             if (!silent) Toast.show('🔄 Sync delta falhou — corrigindo com sync completo', 'info', 2500);
+                            deltaFailed = true;
                         }
                     }
-                    await _appwriteFullPull(silent);
+                    await _appwriteFullPull(silent, deltaFailed);
                 } catch(e) {
                     console.warn('[CloudSync] appwritePull falhou:', e.message);
                 } finally {
