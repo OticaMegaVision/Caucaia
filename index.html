@@ -2,816 +2,1322 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>MegaVision Acuidade Visual · Sistema de Triagem</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OptoSuite Pro — Bateria de Testes Visuais</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Archivo:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#05070c;
-    --panel:#0d1420;
-    --panel-2:#121b29;
-    --edge: rgba(255,255,255,0.08);
-    --text:#eef3fa;
-    --muted:#7c8aa3;
-    --teal:#22c7ad;
-    --teal-dim: rgba(34,199,173,0.16);
-    --amber:#f0a83c;
-    --red:#e6544a;
-    --font-ui:'IBM Plex Sans', system-ui, sans-serif;
-    --font-optotype: Arial, Helvetica, sans-serif; /* letras sem serifa: padrão real dos optotipos Sloan/ETDRS */
+    --bg: #0a0d10;
+    --bg-warm: #0d1113;
+    --panel: #12171a;
+    --panel-2: #171d21;
+    --panel-3: #1c2327;
+    --line: rgba(178,206,206,0.09);
+    --line-strong: rgba(178,206,206,0.16);
+    --text: #e9f1f0;
+    --muted: #7e9291;
+    --muted-2: #587473;
+    --teal: #33d1b8;
+    --teal-dim: #1c6f63;
+    --amber: #f0a94e;
+    --coral: #ef6f5b;
+    --violet: #9d8cf2;
+    --sans: 'Manrope', system-ui, -apple-system, sans-serif;
+    --display: 'Archivo', 'Manrope', sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, 'Courier New', monospace;
+    --optotype: 'Arial', 'Helvetica Neue', sans-serif;
+    --radius-s: 8px;
+    --radius-m: 14px;
+    --radius-l: 22px;
   }
+
   *{margin:0;padding:0;box-sizing:border-box;}
+
   html,body{height:100%;}
+
   body{
-    background:var(--ink);
+    background:
+      radial-gradient(1200px 700px at 15% -10%, rgba(51,209,184,0.05), transparent 60%),
+      radial-gradient(900px 600px at 100% 0%, rgba(157,140,242,0.04), transparent 55%),
+      var(--bg);
     color:var(--text);
-    font-family:var(--font-ui);
-    overflow:hidden;
-    -webkit-user-select:none;user-select:none;
+    font-family:var(--sans);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
   }
+
   button, select, input{font-family:inherit;}
-  button{cursor:pointer;}
-  .hidden{display:none !important;}
 
-  /* ───────────────────────── TELA DE CONFIGURAÇÃO ───────────────────────── */
-  #setup{
-    position:fixed; inset:0;
-    display:flex; align-items:center; justify-content:center;
-    background: radial-gradient(120% 120% at 50% -10%, #101a29 0%, #05070c 60%);
-    padding:24px; z-index:50;
-    overflow-y:auto;
+  ::selection{background:rgba(51,209,184,0.25);}
+
+  /* ============ SHELL ============ */
+  .shell{
+    display:grid;
+    grid-template-columns:232px 1fr;
+    min-height:100vh;
   }
-  .setup-card{
-    width:100%; max-width:760px;
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{
+    background:linear-gradient(180deg, var(--panel), var(--bg-warm));
+    border-right:1px solid var(--line);
+    display:flex;
+    flex-direction:column;
+    padding:22px 14px;
+    gap:26px;
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:11px;
+    padding:0 8px;
+  }
+
+  .brand-mark{
+    width:34px;height:34px;
+    border-radius:10px;
+    background:conic-gradient(from 210deg, var(--teal), var(--violet), var(--teal));
+    display:flex;align-items:center;justify-content:center;
+    position:relative;
+    flex-shrink:0;
+  }
+  .brand-mark::after{
+    content:"";
+    width:12px;height:12px;
+    border-radius:50%;
+    background:var(--bg-warm);
+    box-shadow:inset 0 0 0 2px rgba(0,0,0,0.3);
+  }
+  .brand-mark::before{
+    content:"";
+    position:absolute;
+    width:5px;height:5px;
+    border-radius:50%;
+    background:var(--bg-warm);
+  }
+
+  .brand-text h1{
+    font-family:var(--display);
+    font-size:16.5px;
+    font-weight:800;
+    letter-spacing:0.2px;
+    line-height:1.1;
+  }
+  .brand-text p{
+    font-size:11px;
+    color:var(--muted-2);
+    margin-top:2px;
+    font-family:var(--mono);
+  }
+
+  .nav-section-label{
+    font-size:11px;
+    color:var(--muted-2);
+    padding:0 12px;
+    margin-bottom:2px;
+  }
+
+  nav.test-nav{
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+  }
+
+  .nav-item{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px 12px;
+    border-radius:10px;
+    color:var(--muted);
+    cursor:pointer;
+    font-size:14px;
+    font-weight:600;
+    border:1px solid transparent;
+    transition:background .15s, color .15s, border-color .15s;
+    position:relative;
+  }
+  .nav-item:hover{ background:var(--panel-2); color:var(--text); }
+  .nav-item.active{
+    background:var(--panel-3);
+    color:var(--text);
+    border-color:var(--line-strong);
+  }
+  .nav-item.active::before{
+    content:"";
+    position:absolute;
+    left:-14px; top:8px; bottom:8px;
+    width:3px;
+    border-radius:2px;
+    background:var(--teal);
+  }
+  .nav-ico{
+    width:19px;height:19px;
+    flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    color:inherit;
+  }
+  .nav-ico svg{width:100%;height:100%;}
+
+  .nav-item small{
+    display:block;
+    font-size:10.5px;
+    color:var(--muted-2);
+    font-weight:500;
+    margin-top:1px;
+  }
+
+  .sidebar-foot{
+    margin-top:auto;
+    padding:12px;
+    border-radius:12px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+  }
+  .sidebar-foot p{
+    font-size:11.5px;
+    color:var(--muted);
+    line-height:1.5;
+  }
+  .sidebar-foot strong{color:var(--teal); font-weight:700;}
+
+  /* ---------- MAIN ---------- */
+  .main{ display:flex; flex-direction:column; min-width:0; }
+
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:18px;
+    padding:16px 28px;
+    border-bottom:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+
+  .topbar-left h2{
+    font-family:var(--display);
+    font-size:19px;
+    font-weight:700;
+  }
+  .topbar-left p{
+    font-size:12.5px;
+    color:var(--muted);
+    margin-top:2px;
+  }
+
+  .topbar-right{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .field label{
+    font-size:10.5px;
+    color:var(--muted-2);
+    padding-left:2px;
+  }
+  .field input, .field select{
+    background:var(--panel-2);
+    border:1px solid var(--line-strong);
+    color:var(--text);
+    padding:7px 12px;
+    border-radius:9px;
+    font-size:13px;
+    outline:none;
+    min-width:120px;
+  }
+  .field input:focus, .field select:focus{ border-color:var(--teal); }
+
+  .eye-toggle{
+    display:flex;
+    background:var(--panel-2);
+    border:1px solid var(--line-strong);
+    border-radius:9px;
+    padding:3px;
+    gap:2px;
+  }
+  .eye-toggle button{
+    background:transparent;
+    border:none;
+    color:var(--muted);
+    padding:6px 11px;
+    border-radius:6px;
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .eye-toggle button.active{ background:var(--teal); color:#04231d; }
+
+  .btn-icon{
+    background:var(--panel-2);
+    border:1px solid var(--line-strong);
+    color:var(--text);
+    width:37px;height:37px;
+    border-radius:9px;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+  }
+  .btn-icon svg{ width:17px;height:17px; }
+  .btn-icon:hover{ border-color:var(--teal); color:var(--teal); }
+
+  /* ---------- STAGE ---------- */
+  .stage-wrap{
+    flex:1;
+    padding:22px 28px 28px;
+    display:flex;
+    min-height:0;
+  }
+
+  .stage{
+    flex:1;
     background:var(--panel);
-    border:1px solid var(--edge);
-    border-radius:28px;
-    padding:36px 40px;
-    box-shadow:0 30px 80px rgba(0,0,0,0.6);
-  }
-  .setup-brand{
-    display:flex; align-items:baseline; gap:10px; margin-bottom:6px;
-  }
-  .setup-brand strong{font-size:14px; letter-spacing:0.4px; color:var(--teal);}
-  .setup-brand span{font-size:13px; color:var(--muted);}
-  .setup-card h1{
-    font-size:26px; font-weight:600; margin-bottom:6px; letter-spacing:-0.3px;
-  }
-  .setup-card p.lede{color:var(--muted); font-size:14.5px; line-height:1.55; margin-bottom:28px; max-width:60ch;}
-
-  .step{margin-bottom:30px;}
-  .step-label{
-    display:flex; align-items:center; gap:10px;
-    font-size:13px; font-weight:600; color:var(--teal); letter-spacing:0.3px;
-    margin-bottom:12px;
-  }
-  .step-label .n{
-    width:22px; height:22px; border-radius:50%;
-    background:var(--teal-dim); color:var(--teal);
-    display:flex; align-items:center; justify-content:center;
-    font-size:12px; font-weight:700;
+    border:1px solid var(--line);
+    border-radius:var(--radius-l);
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+    position:relative;
+    overflow:hidden;
   }
 
-  .calib-row{display:flex; align-items:flex-end; gap:24px; flex-wrap:wrap;}
-  .calib-visual{
-    flex:1; min-width:280px;
-    background:#000; border-radius:16px; padding:26px 20px;
-    display:flex; flex-direction:column; align-items:center; gap:14px;
-    border:1px solid var(--edge);
-  }
-  #calibBar{
-    height:64px; background:#fff; border-radius:4px;
-    box-shadow:0 0 0 1px rgba(255,255,255,0.2);
-    transition:width 0.05s linear;
-  }
-  .calib-visual .hint{font-size:12.5px; color:var(--muted); text-align:center;}
-  .calib-controls{display:flex; flex-direction:column; gap:14px; min-width:240px;}
-  .field-row{display:flex; flex-direction:column; gap:6px;}
-  .field-row label{font-size:12.5px; color:var(--muted);}
-  select, .num-input{
-    background:var(--panel-2); border:1px solid #263349; color:var(--text);
-    padding:9px 14px; border-radius:10px; font-size:14.5px; outline:none;
-  }
-  select:focus, .num-input:focus{border-color:var(--teal);}
-  input[type=range]{
-    -webkit-appearance:none; width:100%; height:6px; border-radius:3px;
-    background:#263349; outline:none;
-  }
-  input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none; width:20px; height:20px; border-radius:50%;
-    background:var(--teal); cursor:pointer; border:3px solid #0d1420;
-  }
-  .fine-btns{display:flex; gap:8px;}
-  .fine-btns button{
-    flex:1; background:var(--panel-2); border:1px solid #263349; color:var(--text);
-    padding:8px; border-radius:8px; font-size:15px;
-  }
-  .fine-btns button:active{background:#1a2536;}
-  .mm-readout{font-size:13px; color:var(--muted); text-align:center;}
-  .mm-readout b{color:var(--text); font-weight:600;}
+  .stage:fullscreen{ border-radius:0; }
+  .stage:fullscreen .panel-dock{ position:absolute; bottom:0; left:0; right:0; }
 
-  .quick-grid{display:flex; gap:10px; flex-wrap:wrap;}
-  .quick-grid button{
-    background:var(--panel-2); border:1px solid #263349; color:var(--text);
-    padding:9px 18px; border-radius:30px; font-size:14px;
+  .panel{
+    display:none;
+    flex-direction:column;
+    flex:1;
+    min-height:0;
   }
-  .quick-grid button.active{background:var(--teal); border-color:var(--teal); color:#04211c; font-weight:600;}
+  .panel.active{ display:flex; }
 
-  .setup-actions{display:flex; justify-content:space-between; align-items:center; margin-top:8px; gap:16px; flex-wrap:wrap;}
-  .link-btn{background:none; border:none; color:var(--muted); font-size:13.5px; text-decoration:underline; text-underline-offset:3px;}
-  .primary-btn{
-    background:var(--teal); color:#04211c; border:none; font-weight:700;
-    padding:13px 30px; border-radius:14px; font-size:15px;
+  .panel-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:18px 26px 14px;
+    border-bottom:1px solid var(--line);
+    gap:14px;
+    flex-wrap:wrap;
   }
-  .primary-btn:hover{background:#3bd6bc;}
-  .calib-warning{
-    display:none; font-size:12.5px; color:var(--amber); margin-top:10px;
-    padding:10px 14px; background:rgba(240,168,60,0.1); border-radius:10px;
-    border:1px solid rgba(240,168,60,0.25);
+  .panel-head h3{
+    font-family:var(--display);
+    font-size:15.5px;
+    font-weight:700;
+    color:var(--text);
   }
-  .calib-warning.show{display:block;}
-
-  /* ───────────────────────── TELA DE TESTE ───────────────────────── */
-  #stage{
-    position:fixed; inset:0;
-    background:#000; color:#fff;
-    display:flex; align-items:center; justify-content:center;
-    transition:background 0.25s, color 0.25s;
-  }
-  #stage.inverted{background:#fdfdfb; color:#0a0a0a;}
-  #stage.mirrored #opticalArea{transform:scaleX(-1);}
-
-  #opticalArea{
-    width:100%; height:100%;
-    display:flex; align-items:center; justify-content:center;
+  .panel-head .readout{
+    font-family:var(--mono);
+    font-size:15px;
+    font-weight:600;
+    color:var(--teal);
+    background:rgba(51,209,184,0.08);
+    border:1px solid rgba(51,209,184,0.25);
+    padding:5px 16px;
+    border-radius:20px;
   }
 
-  .optotype-row{
-    display:flex; align-items:baseline; justify-content:center;
-    gap:0.5em;
+  .panel-controls{
+    display:flex;
+    gap:20px;
+    align-items:center;
+    flex-wrap:wrap;
   }
-  .optotype{
-    font-family:var(--font-optotype); font-weight:700; line-height:1; color:currentColor;
-    display:inline-block;
+  .ctrl-group{
+    display:flex;
+    align-items:center;
+    gap:8px;
   }
-  .optotype.tumbling-e{transform-origin:center;}
+  .ctrl-group label{
+    font-size:11.5px;
+    color:var(--muted-2);
+  }
+  .seg{
+    display:flex;
+    background:var(--panel-2);
+    padding:3px;
+    border-radius:9px;
+    gap:2px;
+    border:1px solid var(--line);
+  }
+  .seg button{
+    background:transparent;
+    border:none;
+    color:var(--muted);
+    padding:6px 13px;
+    border-radius:6px;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .seg button.active{ background:var(--teal); color:#04231d; }
+  .seg button:hover:not(.active){ color:var(--text); }
 
-  .landolt{
-    display:inline-block; border-radius:50%; background:currentColor;
-    -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
-  }
-
-  /* Leque de astigmatismo */
-  #astigWrap{width:min(70vh,70vw); aspect-ratio:1; border-radius:50%; position:relative;
-    background:repeating-conic-gradient(currentColor 0deg 3.75deg, transparent 3.75deg 7.5deg);
-  }
-  #astigWrap::after{
-    content:''; position:absolute; inset:0; margin:auto; width:14px; height:14px;
-    border-radius:50%; background:var(--red); top:50%; left:50%; transform:translate(-50%,-50%);
-  }
-  .astig-labels span{position:absolute; font-size:15px; color:var(--muted); font-weight:500;}
-
-  /* Grade de Amsler */
-  #amslerWrap{
-    width:min(72vh,72vw); aspect-ratio:1; position:relative;
-    background-image:
-      repeating-linear-gradient(0deg, currentColor 0, currentColor 1px, transparent 1px, transparent calc(100%/20)),
-      repeating-linear-gradient(90deg, currentColor 0, currentColor 1px, transparent 1px, transparent calc(100%/20));
-    border:2px solid currentColor;
-    color:#c9d3e0;
-  }
-  #stage.inverted #amslerWrap{color:#333;}
-  #amslerWrap::after{
-    content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    width:12px; height:12px; border-radius:50%; background:var(--red);
-  }
-
-  /* Duocromático */
-  #duoWrap{width:100%; height:100%; display:flex;}
-  .duo-half{flex:1; display:flex; align-items:center; justify-content:center;}
-  .duo-half.red{background:#7c1327;}
-  .duo-half.green{background:#0f5c3f;}
-  .duo-half .optotype{color:#fff;}
-
-  /* Sensibilidade ao contraste */
-  #contrastWrap{display:flex; flex-direction:column; gap:2.2vh; align-items:center;}
-  .contrast-line{display:flex; align-items:center; gap:1.4vw;}
-  .contrast-line .pct{width:64px; font-size:14px; color:var(--muted); font-family:var(--font-ui); text-align:right;}
-  .contrast-line .optotype-row{gap:0.35em;}
-
-  /* Chip de olho / feedback */
-  #eyeFlash{
-    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-    background:rgba(0,0,0,0.82); z-index:40; opacity:0; pointer-events:none;
-    transition:opacity 0.25s;
-  }
-  #eyeFlash.show{opacity:1;}
-  #eyeFlash div{font-size:28px; font-weight:600; color:#fff; text-align:center; font-family:var(--font-ui);}
-  #eyeFlash small{display:block; font-size:15px; color:var(--muted); margin-top:8px; font-weight:400;}
-
-  /* Indicador de acuidade */
-  #acuityBadge{
-    position:fixed; top:26px; right:28px; z-index:20;
-    background:rgba(13,20,32,0.82); border:1px solid rgba(255,255,255,0.1);
-    padding:8px 20px; border-radius:40px; font-size:17px; color:#a9c9ff;
-    opacity:0; transition:opacity 0.3s; backdrop-filter:blur(6px);
-  }
-  #acuityBadge.show{opacity:1;}
-
-  #topLeftBadges{position:fixed; top:26px; left:28px; z-index:20; display:flex; gap:10px; opacity:0; transition:opacity 0.3s;}
-  #topLeftBadges.show{opacity:1;}
-  .pill-badge{
-    background:rgba(13,20,32,0.82); border:1px solid rgba(255,255,255,0.1);
-    padding:8px 16px; border-radius:40px; font-size:14px; color:var(--muted);
-    backdrop-filter:blur(6px);
-  }
-  .pill-badge b{color:var(--text);}
-
-  /* ───────────────────────── BARRA DE CONTROLE (auto-hide) ───────────────────────── */
-  #controlBar{
-    position:fixed; left:0; right:0; bottom:0; z-index:30;
-    padding:18px 26px 22px;
-    background:linear-gradient(to top, rgba(0,0,0,0.88), rgba(0,0,0,0));
-    display:flex; flex-direction:column; gap:14px;
-    opacity:0; transform:translateY(12px); pointer-events:none;
-    transition:opacity 0.3s, transform 0.3s;
-  }
-  #controlBar.show{opacity:1; transform:translateY(0); pointer-events:auto;}
-
-  .test-tabs{display:flex; gap:8px; overflow-x:auto; padding-bottom:2px;}
-  .test-tabs::-webkit-scrollbar{height:4px;}
-  .test-tabs::-webkit-scrollbar-thumb{background:#2a3648; border-radius:4px;}
-  .test-tabs button{
-    white-space:nowrap; background:#141c2a; border:1px solid #263349; color:#c4d0e4;
-    padding:8px 18px; border-radius:30px; font-size:13.5px; font-weight:500; flex-shrink:0;
-  }
-  .test-tabs button.active{background:var(--teal); border-color:var(--teal); color:#04211c; font-weight:700;}
-
-  .control-row{display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:space-between;}
-  .control-cluster{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
-  .icon-btn{
-    background:#141c2a; border:1px solid #263349; color:#c4d0e4;
-    padding:9px 16px; border-radius:12px; font-size:13.5px; display:flex; align-items:center; gap:7px;
-  }
-  .icon-btn.active{background:var(--teal-dim); border-color:var(--teal); color:var(--teal);}
-  .icon-btn:disabled{opacity:0.35;}
-  .nav-hint{color:#5a6f8c; font-size:12.5px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
-  .nav-hint kbd{
-    background:#1a2330; padding:3px 9px; border-radius:6px; border:1px solid #2a3648;
-    color:#b8caf0; font-size:11.5px;
+  select.mini{
+    background:var(--panel-2);
+    border:1px solid var(--line-strong);
+    color:var(--text);
+    padding:6px 10px;
+    border-radius:8px;
+    font-size:12.5px;
+    outline:none;
   }
 
-  .eye-group{display:flex; background:#141c2a; border:1px solid #263349; border-radius:12px; overflow:hidden;}
-  .eye-group button{background:transparent; border:none; color:#c4d0e4; padding:9px 16px; font-size:13.5px; font-weight:600;}
-  .eye-group button.active{background:var(--teal); color:#04211c;}
-
-  footer.brand-footer{
-    position:fixed; bottom:8px; left:50%; transform:translateX(-50%); z-index:5;
-    font-size:11px; color:#3d4a5f; letter-spacing:0.3px; pointer-events:none;
+  .panel-body{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:0;
+    padding:20px;
+    position:relative;
+    overflow:auto;
   }
 
-  @media (max-width: 720px){
-    .setup-card{padding:26px 20px;}
-    .calib-row{flex-direction:column;}
-    #acuityBadge{font-size:14px; padding:6px 14px; top:16px; right:16px;}
-    #topLeftBadges{top:16px; left:16px;}
+  .panel-dock{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 26px;
+    border-top:1px solid var(--line);
+    gap:16px;
+    flex-wrap:wrap;
+    background:var(--panel);
+  }
+
+  .hint{
+    font-size:12px;
+    color:var(--muted-2);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  kbd{
+    background:var(--panel-3);
+    border:1px solid var(--line-strong);
+    padding:3px 8px;
+    border-radius:5px;
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--muted);
+  }
+
+  .btn{
+    background:var(--panel-3);
+    border:1px solid var(--line-strong);
+    color:var(--text);
+    padding:9px 20px;
+    border-radius:9px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .btn:hover{ border-color:var(--teal); }
+  .btn.primary{ background:var(--teal); border-color:var(--teal); color:#04231d; }
+  .btn.primary:hover{ background:#28bfa8; }
+  .btn.ghost{ background:transparent; border-color:var(--line); color:var(--muted); }
+  .btn:active{ transform:scale(0.97); }
+  .btn:disabled{ opacity:0.35; cursor:not-allowed; }
+
+  .dock-actions{ display:flex; gap:10px; }
+
+  .disclaimer{
+    font-size:11px;
+    color:var(--muted-2);
+    padding:10px 26px;
+    border-top:1px solid var(--line);
+    line-height:1.5;
+  }
+  .disclaimer b{ color:var(--muted); }
+
+  @media (max-width: 980px){
+    .shell{ grid-template-columns:1fr; }
+    .sidebar{
+      flex-direction:row;
+      overflow-x:auto;
+      padding:14px;
+      gap:14px;
+    }
+    .sidebar-foot{ display:none; }
+    nav.test-nav{ flex-direction:row; }
+    .nav-item::before{ display:none; }
+    .brand{ display:none; }
+    .nav-section-label{ display:none; }
   }
 </style>
 </head>
 <body>
+<div class="shell">
 
-  <!-- ═══════════════════════ TELA DE CONFIGURAÇÃO ═══════════════════════ -->
-  <div id="setup">
-    <div class="setup-card">
-      <div class="setup-brand"><strong>MEGAVISION</strong><span>Acuidade Visual · Sistema de Triagem</span></div>
-      <h1>Configurar exame</h1>
-      <p class="lede">Para que as letras apareçam no tamanho óptico correto, calibre a tela com um objeto de largura conhecida (cartão ou régua) e informe a distância entre o paciente e a TV.</p>
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div class="brand-text">
+        <h1>OptoSuite Pro</h1>
+        <p>bateria de triagem visual</p>
+      </div>
+    </div>
 
-      <div class="step">
-        <div class="step-label"><span class="n">1</span> Calibrar a tela</div>
-        <div class="calib-row">
-          <div class="calib-visual">
-            <div id="calibBar" style="width:200px;"></div>
-            <div class="hint">Encoste o objeto de referência na barra branca acima e ajuste até a largura coincidir exatamente.</div>
+    <div>
+      <div class="nav-section-label">Testes</div>
+      <nav class="test-nav" id="testNav">
+        <div class="nav-item active" data-test="acuidade">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+          <span>Acuidade Visual<small>Snellen · ETDRS · Landolt C</small></span>
+        </div>
+        <div class="nav-item" data-test="daltonismo">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="9" r="5.2"/><circle cx="15" cy="9" r="5.2"/><circle cx="11.5" cy="15.5" r="5.2"/></svg>
+          </span>
+          <span>Discromatopsia<small>Pranchas pseudoisocromáticas</small></span>
+        </div>
+        <div class="nav-item" data-test="astigmatismo">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9.2"/><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"/></svg>
+          </span>
+          <span>Astigmatismo<small>Carta radial (dial)</small></span>
+        </div>
+        <div class="nav-item" data-test="amsler">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="1.5"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/></svg>
+          </span>
+          <span>Grade de Amsler<small>Mácula · metamorfopsia</small></span>
+        </div>
+        <div class="nav-item" data-test="contraste">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 5h4M3 9h6M3 13h8M3 17h10"/><path d="M13 5h8M15 9h6M17 13h4M19 17h2" opacity="0.4"/></svg>
+          </span>
+          <span>Sensib. Contraste<small>Estilo Pelli-Robson</small></span>
+        </div>
+        <div class="nav-item" data-test="duocromatico">
+          <span class="nav-ico">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M3 4h9v16H3z" fill="currentColor" opacity="0.55"/><path d="M12 4h9v16h-9z" fill="currentColor" opacity="0.2"/></svg>
+          </span>
+          <span>Teste Duocromático<small>Ajuste esférico fino</small></span>
+        </div>
+      </nav>
+    </div>
+
+    <div class="sidebar-foot">
+      <p><strong>Uso profissional.</strong> Calibre a tela e a distância antes de cada sessão. Resultados dependem da fidelidade de cor e brilho do monitor.</p>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <h2 id="testTitle">Acuidade Visual</h2>
+        <p id="testSubtitle">Tabelas optométricas para mensuração da acuidade visual à distância</p>
+      </div>
+      <div class="topbar-right">
+        <div class="field">
+          <label>Paciente</label>
+          <input type="text" id="patientName" placeholder="Nome do paciente" />
+        </div>
+        <div class="field">
+          <label>Olho</label>
+          <div class="eye-toggle" id="eyeToggle">
+            <button data-eye="AO" class="active">AO</button>
+            <button data-eye="OD">OD</button>
+            <button data-eye="OE">OE</button>
           </div>
-          <div class="calib-controls">
-            <div class="field-row">
-              <label>Objeto de referência</label>
-              <select id="refObject">
-                <option value="85.6">Cartão de crédito/débito (85,6 mm)</option>
-                <option value="100">Régua — 10 cm (100 mm)</option>
-                <option value="custom">Personalizado…</option>
-              </select>
-            </div>
-            <div class="field-row hidden" id="customMmRow">
-              <label>Largura real do objeto (mm)</label>
-              <input type="number" class="num-input" id="customMm" value="50" min="10" max="300">
-            </div>
-            <div class="field-row">
-              <label>Ajuste fino da largura na tela</label>
-              <input type="range" id="calibSlider" min="60" max="900" value="200">
-              <div class="fine-btns">
-                <button type="button" id="calibMinus">－ 1px</button>
-                <button type="button" id="calibPlus">＋ 1px</button>
+        </div>
+        <button class="btn-icon" id="fullscreenBtn" title="Tela cheia">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 1-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="stage-wrap">
+      <div class="stage" id="stage">
+
+        <!-- ================= PAINEL: ACUIDADE ================= -->
+        <section class="panel active" id="panel-acuidade">
+          <div class="panel-head">
+            <h3>Tabela em uso: <span id="acLabel">Snellen</span></h3>
+            <div class="readout" id="acReadout">20/20 · 1.0 · 0.00 logMAR</div>
+          </div>
+          <div class="panel-controls" style="padding:14px 26px 0;">
+            <div class="ctrl-group">
+              <label>Optótipo</label>
+              <div class="seg" id="acOptotype">
+                <button class="active" data-v="snellen">Snellen</button>
+                <button data-v="sloan">Sloan (ETDRS)</button>
+                <button data-v="landolt">Landolt C</button>
+                <button data-v="simbolos">Infantil</button>
               </div>
             </div>
-            <div class="mm-readout">1 mm real ≈ <b id="pxPerMmReadout">—</b> px de tela</div>
+            <div class="ctrl-group">
+              <label>Modo</label>
+              <div class="seg" id="acMode">
+                <button class="active" data-v="linha">Linha isolada</button>
+                <button data-v="tabela">Tabela completa</button>
+              </div>
+            </div>
+            <div class="ctrl-group">
+              <label>Distância</label>
+              <select class="mini" id="acDistance">
+                <option value="3">3 m</option>
+                <option value="4">4 m</option>
+                <option value="5" selected>5 m</option>
+                <option value="6">6 m</option>
+              </select>
+            </div>
+            <div class="ctrl-group">
+              <label>Tela</label>
+              <select class="mini" id="acScreen">
+                <option value="32">32"</option>
+                <option value="43">43"</option>
+                <option value="50" selected>50"</option>
+                <option value="55">55"</option>
+                <option value="65">65"</option>
+              </select>
+            </div>
+            <div class="ctrl-group">
+              <label>Espelhar</label>
+              <button class="btn ghost" id="acMirror" style="padding:6px 14px;">Ligar</button>
+            </div>
           </div>
-        </div>
-        <div class="calib-warning" id="calibWarning">Calibração ainda não confirmada — os tamanhos serão aproximados até você confirmar.</div>
-      </div>
+          <div class="panel-body">
+            <div id="acStageArea" style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;"></div>
+          </div>
+          <div class="panel-dock">
+            <div class="hint">
+              <span>Navegue com</span> <kbd>▲</kbd><kbd>▼</kbd>
+              <span>·</span> <kbd>Enter</kbd><span>isolar / tabela</span>
+            </div>
+            <div class="dock-actions">
+              <button class="btn" id="acPrev">◂ Linha maior</button>
+              <button class="btn primary" id="acNext">Linha menor ▸</button>
+            </div>
+          </div>
+        </section>
 
-      <div class="step">
-        <div class="step-label"><span class="n">2</span> Distância até o paciente</div>
-        <div class="quick-grid" id="distanceQuick">
-          <button data-d="2">2 m</button>
-          <button data-d="3" class="active">3 m</button>
-          <button data-d="4">4 m</button>
-          <button data-d="5">5 m</button>
-          <button data-d="6">6 m</button>
-        </div>
-        <div class="field-row" style="max-width:200px; margin-top:12px;">
-          <label>ou distância personalizada (m)</label>
-          <input type="number" class="num-input" id="customDistance" step="0.1" min="0.5" max="12" placeholder="ex: 3.5">
-        </div>
-      </div>
+        <!-- ================= PAINEL: DALTONISMO ================= -->
+        <section class="panel" id="panel-daltonismo">
+          <div class="panel-head">
+            <h3>Prancha <span id="dPlateIdx">1</span> de <span id="dPlateTotal">12</span></h3>
+            <div class="readout" id="dScoreReadout">0 acertos · 0 registradas</div>
+          </div>
+          <div class="panel-controls" style="padding:14px 26px 0;">
+            <div class="ctrl-group">
+              <label>Eixo de confusão</label>
+              <div class="seg" id="dAxis">
+                <button class="active" data-v="rg">Vermelho–Verde</button>
+                <button data-v="by">Azul–Amarelo</button>
+                <button data-v="mix">Misto</button>
+              </div>
+            </div>
+            <div class="ctrl-group">
+              <label>Densidade de pontos</label>
+              <select class="mini" id="dDensity">
+                <option value="baixa">Baixa</option>
+                <option value="media" selected>Média</option>
+                <option value="alta">Alta</option>
+              </select>
+            </div>
+          </div>
+          <div class="panel-body">
+            <canvas id="dCanvas" width="560" height="560" style="border-radius:50%;max-width:min(70vh,560px);width:100%;height:auto;background:#e9e4d4;"></canvas>
+          </div>
+          <div class="panel-dock">
+            <div class="hint" id="dResponseArea">
+              <span>Resposta do paciente:</span>
+            </div>
+            <div class="dock-actions">
+              <button class="btn ghost" id="dReset">Reiniciar sessão</button>
+              <button class="btn primary" id="dNext">Próxima prancha ▸</button>
+            </div>
+          </div>
+        </section>
 
-      <div class="setup-actions">
-        <button class="link-btn" id="skipCalibBtn">Usar sem calibrar (aproximado)</button>
-        <button class="primary-btn" id="confirmSetupBtn">Confirmar e iniciar exame</button>
+        <!-- ================= PAINEL: ASTIGMATISMO ================= -->
+        <section class="panel" id="panel-astigmatismo">
+          <div class="panel-head">
+            <h3>Carta radial (dial astigmático)</h3>
+            <div class="readout" id="astReadout">Eixo relatado: —</div>
+          </div>
+          <div class="panel-controls" style="padding:14px 26px 0;">
+            <div class="ctrl-group">
+              <label>Raios</label>
+              <div class="seg" id="astRays">
+                <button data-v="12">12</button>
+                <button class="active" data-v="24">24</button>
+              </div>
+            </div>
+            <div class="ctrl-group">
+              <label>Marcações de grau</label>
+              <button class="btn ghost" id="astDegrees" style="padding:6px 14px;">Mostrar</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <svg id="astSvg" viewBox="0 0 560 560" style="width:100%;max-width:560px;height:auto;"></svg>
+          </div>
+          <div class="panel-dock">
+            <div class="hint">Peça ao paciente para indicar a(s) linha(s) mais nítida(s) ou mais escura(s). Registre o eixo informado abaixo.</div>
+            <div class="ctrl-group">
+              <input type="number" min="0" max="180" placeholder="0–180°" class="mini" id="astInput" style="width:90px;">
+              <button class="btn primary" id="astSave">Registrar eixo</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= PAINEL: AMSLER ================= -->
+        <section class="panel" id="panel-amsler">
+          <div class="panel-head">
+            <h3>Grade de Amsler</h3>
+            <div class="readout" id="amMarksReadout">0 áreas marcadas</div>
+          </div>
+          <div class="panel-controls" style="padding:14px 26px 0;">
+            <div class="ctrl-group">
+              <label>Variante</label>
+              <div class="seg" id="amVariant">
+                <button class="active" data-v="fino">Linhas finas</button>
+                <button data-v="grosso">Linhas grossas</button>
+              </div>
+            </div>
+            <div class="ctrl-group">
+              <label>Densidade</label>
+              <select class="mini" id="amDensity">
+                <option value="10">10×10</option>
+                <option value="20" selected>20×20</option>
+              </select>
+            </div>
+          </div>
+          <div class="panel-body">
+            <svg id="amSvg" viewBox="0 0 560 560" style="width:100%;max-width:560px;height:auto;background:#0a0a0a;border-radius:4px;"></svg>
+          </div>
+          <div class="panel-dock">
+            <div class="hint">Distância de leitura ~30–40 cm, um olho por vez. Peça ao paciente para clicar/apontar áreas onde as linhas parecem onduladas, borradas ou ausentes.</div>
+            <div class="dock-actions">
+              <button class="btn ghost" id="amClear">Limpar marcações</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= PAINEL: CONTRASTE ================= -->
+        <section class="panel" id="panel-contraste">
+          <div class="panel-head">
+            <h3>Sensibilidade ao Contraste</h3>
+            <div class="readout" id="ctReadout">Última linha legível: —</div>
+          </div>
+          <div class="panel-controls" style="padding:14px 26px 0;">
+            <div class="ctrl-group">
+              <label>Fundo</label>
+              <div class="seg" id="ctBg">
+                <button class="active" data-v="claro">Claro</button>
+                <button data-v="escuro">Escuro</button>
+              </div>
+            </div>
+            <div class="ctrl-group">
+              <label>Nº de níveis</label>
+              <select class="mini" id="ctLevels">
+                <option value="8" selected>8</option>
+                <option value="10">10</option>
+              </select>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div id="ctStageArea" style="display:flex;flex-direction:column;gap:14px;width:100%;max-width:640px;"></div>
+          </div>
+          <div class="panel-dock">
+            <div class="hint">Clique na última linha em que o paciente ainda consegue identificar as letras corretamente.</div>
+          </div>
+        </section>
+
+        <!-- ================= PAINEL: DUOCROMATICO ================= -->
+        <section class="panel" id="panel-duocromatico">
+          <div class="panel-head">
+            <h3>Teste Duocromático (Bicromático)</h3>
+            <div class="readout" id="duReadout">Resposta: —</div>
+          </div>
+          <div class="panel-controls" style="padding:14px 26px 0;">
+            <div class="ctrl-group">
+              <label>Orientação</label>
+              <div class="seg" id="duOrient">
+                <button class="active" data-v="vertical">Vertical</button>
+                <button data-v="horizontal">Horizontal</button>
+              </div>
+            </div>
+            <div class="ctrl-group">
+              <label>Conteúdo</label>
+              <div class="seg" id="duContent">
+                <button class="active" data-v="letras">Letras</button>
+                <button data-v="pontos">Ponto único</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body" style="padding:0;">
+            <div id="duStageArea" style="width:100%;height:100%;"></div>
+          </div>
+          <div class="panel-dock">
+            <div class="hint">O paciente deve informar de qual lado as letras aparecem mais nítidas e escuras.</div>
+            <div class="dock-actions">
+              <button class="btn" data-ans="vermelho">Mais nítido: Vermelho</button>
+              <button class="btn" data-ans="igual">Igual nos dois</button>
+              <button class="btn" data-ans="verde">Mais nítido: Verde</button>
+            </div>
+          </div>
+        </section>
+
       </div>
     </div>
-  </div>
 
-  <!-- ═══════════════════════ TELA DE EXAME ═══════════════════════ -->
-  <div id="stage" class="hidden">
-    <div id="opticalArea"></div>
-  </div>
-
-  <div id="eyeFlash"><div id="eyeFlashText"></div></div>
-  <div id="acuityBadge"></div>
-  <div id="topLeftBadges"></div>
-  <footer class="brand-footer">ÓticaMegaVision · Ferramenta de triagem — não substitui exame oftalmológico completo</footer>
-
-  <div id="controlBar">
-    <div class="test-tabs" id="testTabs"></div>
-    <div class="control-row">
-      <div class="control-cluster">
-        <div class="eye-group" id="eyeGroup">
-          <button data-eye="OD">OD</button>
-          <button data-eye="AO" class="active">AO</button>
-          <button data-eye="OE">OE</button>
-        </div>
-        <button class="icon-btn" id="prevLineBtn">◀ Anterior</button>
-        <button class="icon-btn" id="nextLineBtn">Próxima ▶</button>
-        <button class="icon-btn" id="randomizeBtn">⟳ Sortear</button>
-        <button class="icon-btn" id="isolateBtn">Isolar letra</button>
-      </div>
-      <div class="control-cluster">
-        <button class="icon-btn" id="invertBtn">Inverter cor</button>
-        <button class="icon-btn" id="mirrorBtn">Espelhar</button>
-        <button class="icon-btn" id="fullscreenBtn">Tela cheia</button>
-        <button class="icon-btn" id="calibBtn">⚙ Calibração</button>
-      </div>
+    <div class="disclaimer">
+      <b>Ferramenta de apoio à triagem visual</b> — não substitui exame oftalmológico completo nem calibração de equipamento certificado. Resultados dependem de monitor, iluminação ambiente e distância reais.
     </div>
-    <div class="nav-hint">
-      <span><kbd>▲</kbd><kbd>▼</kbd> linha</span>
-      <span><kbd>◀</kbd><kbd>▶</kbd> tipo de teste</span>
-      <span><kbd>Enter</kbd> isolar/sortear</span>
-      <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> OD/AO/OE</span>
-      <span><kbd>F</kbd> tela cheia</span>
-      <span><kbd>I</kbd> inverter</span>
-    </div>
-  </div>
+  </main>
+</div>
 
 <script>
 (function(){
 'use strict';
 
-/* ═══════════════════ DADOS CLÍNICOS ═══════════════════ */
-
-// Letras Snellen tradicionais
-const SNELLEN_SET = ['C','D','E','F','L','N','O','P','T','Z'];
-// Letras Sloan (padrão ETDRS / LogMAR)
-const SLOAN_SET = ['C','D','H','K','N','O','R','S','V','Z'];
-// Letras HOTV (teste infantil / pareamento, sem necessidade de leitura)
-const HOTV_SET = ['H','O','T','V'];
-
-// Progressão clássica de denominadores Snellen (20/X)
-const SNELLEN_DEN = [200,100,70,50,40,30,25,20,15,10];
-const SNELLEN_COUNT = [1,2,3,3,4,5,5,5,5,5];
-
-// Progressão logMAR padrão (0,1 unidade log por linha) — usada em ETDRS, E direcional e Landolt C
-const LOGMAR_STEPS = [1.0,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1,0.0,-0.1,-0.2,-0.3];
-const LOGMAR_DEN = LOGMAR_STEPS.map(l => Math.round(20*Math.pow(10,l)*10)/10);
-const LOGMAR_COUNT = [1,2,3,4,5,5,5,5,5,5,5,5,5,5];
-
-const TEST_DEFS = {
-  snellen:   { label:'Snellen',        family:'letters', set:SNELLEN_SET, den:SNELLEN_DEN, count:SNELLEN_COUNT, acuityStyle:'snellen' },
-  etdrs:     { label:'ETDRS / LogMAR', family:'letters', set:SLOAN_SET,   den:LOGMAR_DEN,  count:LOGMAR_COUNT,  acuityStyle:'logmar' },
-  tumblingE: { label:'E Direcional',   family:'tumblingE', den:SNELLEN_DEN, count:SNELLEN_COUNT, acuityStyle:'snellen' },
-  landolt:   { label:'Anel de Landolt',family:'landolt', den:LOGMAR_DEN, count:LOGMAR_COUNT, acuityStyle:'logmar' },
-  hotv:      { label:'HOTV (infantil)',family:'letters', set:HOTV_SET,   den:SNELLEN_DEN, count:SNELLEN_COUNT, acuityStyle:'snellen' },
-  astigmatism:{ label:'Leque de Astigmatismo', family:'astig' },
-  amsler:    { label:'Grade de Amsler', family:'amsler' },
-  duochrome: { label:'Duocromático',   family:'duochrome' },
-  contrast:  { label:'Sensibilidade ao Contraste', family:'contrast' },
-};
-const TEST_ORDER = ['snellen','etdrs','tumblingE','landolt','hotv','astigmatism','amsler','duochrome','contrast'];
-
-/* ═══════════════════ ESTADO ═══════════════════ */
-
-const state = {
-  pxPerMm: 3.78,          // fallback ~96dpi até calibrar
-  calibrated: false,
-  distanceM: 3,
-  testType: 'snellen',
-  lineIndex: 0,
-  eye: 'AO',
-  inverted: false,
-  mirrored: false,
-  isolate: false,
+/* =========================================================
+   NAVEGAÇÃO ENTRE PAINÉIS
+   ========================================================= */
+const TEST_META = {
+  acuidade:     { title:'Acuidade Visual', sub:'Tabelas optométricas para mensuração da acuidade visual à distância' },
+  daltonismo:   { title:'Discromatopsia', sub:'Pranchas pseudoisocromáticas para triagem de deficiência de percepção de cores' },
+  astigmatismo: { title:'Astigmatismo', sub:'Carta radial (dial) para identificação subjetiva do eixo de astigmatismo' },
+  amsler:       { title:'Grade de Amsler', sub:'Triagem de metamorfopsia e escotomas centrais/paracentrais' },
+  contraste:    { title:'Sensibilidade ao Contraste', sub:'Identificação do limiar de contraste, similar ao método Pelli-Robson' },
+  duocromatico: { title:'Teste Duocromático', sub:'Apoio ao ajuste fino do componente esférico da refração' },
 };
 
-function loadState(){
-  try{
-    const saved = JSON.parse(localStorage.getItem('megavision-acuidade') || '{}');
-    Object.assign(state, saved);
-  }catch(e){}
-}
-function saveState(){
-  try{
-    localStorage.setItem('megavision-acuidade', JSON.stringify({
-      pxPerMm: state.pxPerMm, calibrated: state.calibrated, distanceM: state.distanceM,
-      testType: state.testType, inverted: state.inverted, mirrored: state.mirrored
-    }));
-  }catch(e){}
+const navItems = document.querySelectorAll('.nav-item');
+const panels = document.querySelectorAll('.panel');
+const testTitle = document.getElementById('testTitle');
+const testSubtitle = document.getElementById('testSubtitle');
+
+function switchTest(name){
+  navItems.forEach(n => n.classList.toggle('active', n.dataset.test === name));
+  panels.forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+  const meta = TEST_META[name];
+  if(meta){ testTitle.textContent = meta.title; testSubtitle.textContent = meta.sub; }
 }
 
-/* ═══════════════════ ELEMENTOS ═══════════════════ */
+navItems.forEach(item => item.addEventListener('click', () => switchTest(item.dataset.test)));
 
-const setupEl = document.getElementById('setup');
-const stageEl = document.getElementById('stage');
-const opticalArea = document.getElementById('opticalArea');
-const controlBar = document.getElementById('controlBar');
-const acuityBadge = document.getElementById('acuityBadge');
-const topLeftBadges = document.getElementById('topLeftBadges');
-const eyeFlash = document.getElementById('eyeFlash');
-const eyeFlashText = document.getElementById('eyeFlashText');
-
-const calibBar = document.getElementById('calibBar');
-const calibSlider = document.getElementById('calibSlider');
-const refObject = document.getElementById('refObject');
-const customMmRow = document.getElementById('customMmRow');
-const customMm = document.getElementById('customMm');
-const pxPerMmReadout = document.getElementById('pxPerMmReadout');
-const calibWarning = document.getElementById('calibWarning');
-
-/* ═══════════════════ CALIBRAÇÃO (tela de setup) ═══════════════════ */
-
-function targetMm(){
-  return refObject.value === 'custom' ? (parseFloat(customMm.value)||50) : parseFloat(refObject.value);
-}
-function updateCalibVisual(){
-  const px = parseInt(calibSlider.value,10);
-  calibBar.style.width = px+'px';
-  const ppm = px / targetMm();
-  pxPerMmReadout.textContent = ppm.toFixed(2);
-}
-refObject.addEventListener('change', () => {
-  customMmRow.classList.toggle('hidden', refObject.value !== 'custom');
-  updateCalibVisual();
-});
-customMm.addEventListener('input', updateCalibVisual);
-calibSlider.addEventListener('input', updateCalibVisual);
-document.getElementById('calibMinus').addEventListener('click', () => { calibSlider.value = Math.max(60, parseInt(calibSlider.value,10)-1); updateCalibVisual(); });
-document.getElementById('calibPlus').addEventListener('click', () => { calibSlider.value = Math.min(900, parseInt(calibSlider.value,10)+1); updateCalibVisual(); });
-updateCalibVisual();
-
-document.getElementById('distanceQuick').addEventListener('click', (e) => {
-  const btn = e.target.closest('button');
-  if(!btn) return;
-  document.querySelectorAll('#distanceQuick button').forEach(b=>b.classList.remove('active'));
+/* Paciente / olho / fullscreen (globais, apenas cosméticos/registro) */
+document.getElementById('eyeToggle').addEventListener('click', e=>{
+  const btn = e.target.closest('button'); if(!btn) return;
+  document.querySelectorAll('#eyeToggle button').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('customDistance').value = '';
-  state.distanceM = parseFloat(btn.dataset.d);
-});
-document.getElementById('customDistance').addEventListener('input', (e) => {
-  const v = parseFloat(e.target.value);
-  if(v > 0){
-    document.querySelectorAll('#distanceQuick button').forEach(b=>b.classList.remove('active'));
-    state.distanceM = v;
-  }
 });
 
-function confirmSetup(withCalibration){
-  if(withCalibration){
-    state.pxPerMm = parseInt(calibSlider.value,10) / targetMm();
-    state.calibrated = true;
-  }
-  saveState();
-  setupEl.classList.add('hidden');
-  stageEl.classList.remove('hidden');
-  showControlBar();
-  render();
-}
-document.getElementById('confirmSetupBtn').addEventListener('click', () => confirmSetup(true));
-document.getElementById('skipCalibBtn').addEventListener('click', () => confirmSetup(false));
-document.getElementById('calibBtn').addEventListener('click', () => {
-  setupEl.classList.remove('hidden');
+document.getElementById('fullscreenBtn').addEventListener('click', ()=>{
+  const stage = document.getElementById('stage');
+  if(!document.fullscreenElement){ stage.requestFullscreen?.(); }
+  else{ document.exitFullscreen?.(); }
 });
 
-/* ═══════════════════ CÁLCULO ÓPTICO DE TAMANHO ═══════════════════ */
-
-// Altura do optotipo (mm) para um denominador Snellen "20/den" a uma dada distância (m).
-// Baseado no ângulo visual padrão de 5' de arco para a letra completa (20/20 a 6 m ≈ 8,7 mm).
-function optotypeHeightMm(distanceM, den){
-  return distanceM * 1.4544 * (den/20);
-}
-function optotypeHeightPx(distanceM, den){
-  const heightMm = optotypeHeightMm(distanceM, den);
-  return heightMm * (state.calibrated ? state.pxPerMm : state.pxPerMm);
-}
-
-/* ═══════════════════ RENDERIZAÇÃO ═══════════════════ */
-
-function currentDef(){ return TEST_DEFS[state.testType]; }
-
-function pickRandom(arr, n, excludeRepeat=true){
-  const pool = arr.slice();
-  const out = [];
-  for(let i=0;i<n;i++){
-    if(pool.length===0) pool.push(...arr);
-    const idx = Math.floor(Math.random()*pool.length);
-    out.push(pool[idx]);
-    if(excludeRepeat) pool.splice(idx,1);
+/* util */
+function el(tag, attrs, children){
+  const e = document.createElement(tag);
+  if(attrs) for(const k in attrs){
+    if(k === 'style') e.style.cssText = attrs[k];
+    else if(k.startsWith('on')) e.addEventListener(k.slice(2), attrs[k]);
+    else e.setAttribute(k, attrs[k]);
   }
-  return out;
+  (children||[]).forEach(c => e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c));
+  return e;
 }
+function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function randRange(a,b){ return a + Math.random()*(b-a); }
 
-function render(){
-  const def = currentDef();
-  updateTabs();
-  updateEyeGroup();
+/* =========================================================
+   MÓDULO 1 — ACUIDADE VISUAL
+   ========================================================= */
+(function acuidadeModule(){
+  const SNELLEN_LETTERS = ['E','F','P','T','O','Z','L','D','C'];
+  const SLOAN_LETTERS = ['C','D','H','K','N','O','R','S','V','Z'];
+  const LANDOLT_DIRS = [0,45,90,135,180,225,270,315];
+  const SYMBOLS = ['circle','square','triangle','star','heart','cross'];
 
-  if(def.family === 'letters' || def.family === 'tumblingE' || def.family === 'landolt'){
-    renderOptotypeLine(def);
-  } else if(def.family === 'astig'){
-    renderAstigmatism();
-  } else if(def.family === 'amsler'){
-    renderAmsler();
-  } else if(def.family === 'duochrome'){
-    renderDuochrome();
-  } else if(def.family === 'contrast'){
-    renderContrast();
-  }
-  updateIsolateBtnState();
-}
+  // acuidade Snellen de referência por linha (index 0 = maior)
+  const SNELLEN_ACUITY = ['20/200','20/160','20/125','20/100','20/80','20/63','20/50','20/40','20/32','20/25','20/20','20/16','20/12.5','20/10'];
+  const N_LINES = SNELLEN_ACUITY.length;
+  const N_PER_LINE_TABLE = [1,2,3,4,5,6,7,7,7,7,7,6,5,4]; // clássico Snellen: menos letras nas linhas grandes
 
-function renderOptotypeLine(def){
-  const total = def.den.length;
-  if(state.lineIndex >= total) state.lineIndex = total-1;
-  if(state.lineIndex < 0) state.lineIndex = 0;
-
-  const den = def.den[state.lineIndex];
-  let count = state.isolate ? 1 : def.count[state.lineIndex];
-  const capHeightPx = optotypeHeightPx(state.distanceM, den);
-
-  let items = [];
-  if(def.family === 'letters'){
-    const letters = pickRandom(def.set, count, count <= def.set.length);
-    items = letters.map(ch => {
-      const fontPx = capHeightPx/0.72;
-      return `<span class="optotype" style="font-size:${fontPx}px;">${ch}</span>`;
-    });
-  } else if(def.family === 'tumblingE'){
-    const rotations = [0,90,180,270];
-    items = pickRandom(rotations, count, false).map(rot => {
-      const fontPx = capHeightPx/0.72;
-      return `<span class="optotype tumbling-e" style="font-size:${fontPx}px; transform:rotate(${rot}deg);">E</span>`;
-    });
-  } else if(def.family === 'landolt'){
-    const dirs = [0,45,90,135,180,225,270,315];
-    items = pickRandom(dirs, count, false).map(dir => {
-      const size = capHeightPx;
-      const ring = Math.max(2, size/5);
-      const gapDeg = 46;
-      const from = dir + gapDeg/2;
-      const style = `width:${size}px;height:${size}px;`+
-        `background:conic-gradient(from ${from}deg, currentColor 0deg ${360-gapDeg}deg, transparent ${360-gapDeg}deg 360deg);`+
-        `-webkit-mask:radial-gradient(circle, transparent calc(50% - ${ring}px), #000 calc(50% - ${ring}px));`+
-        `mask:radial-gradient(circle, transparent calc(50% - ${ring}px), #000 calc(50% - ${ring}px));`;
-      return `<span class="landolt" style="${style}"></span>`;
-    });
-  }
-
-  opticalArea.innerHTML = `<div class="optotype-row">${items.join('')}</div>`;
-
-  // Acuidade / progresso
-  showAcuityBadge(def, den, state.lineIndex+1, total);
-}
-
-function renderAstigmatism(){
-  opticalArea.innerHTML = `
-    <div style="position:relative; display:flex; align-items:center; justify-content:center;">
-      <div id="astigWrap"></div>
-    </div>`;
-  acuityBadge.textContent = 'Leque de astigmatismo — peça ao paciente para indicar as linhas mais nítidas/escuras';
-  acuityBadge.classList.add('show');
-  topLeftBadges.classList.remove('show');
-}
-
-function renderAmsler(){
-  opticalArea.innerHTML = `<div id="amslerWrap"></div>`;
-  acuityBadge.textContent = 'Grade de Amsler — fixação no ponto central, verificar linhas onduladas ou áreas ausentes';
-  acuityBadge.classList.add('show');
-  topLeftBadges.classList.remove('show');
-}
-
-function renderDuochrome(){
-  const letters = pickRandom(SLOAN_SET, 6, true);
-  const fontPx = optotypeHeightPx(state.distanceM, 40)/0.72;
-  const rowA = letters.slice(0,3).map(l=>`<span class="optotype" style="font-size:${fontPx}px;">${l}</span>`).join('');
-  const rowB = letters.slice(3,6).map(l=>`<span class="optotype" style="font-size:${fontPx}px;">${l}</span>`).join('');
-  opticalArea.innerHTML = `
-    <div id="duoWrap">
-      <div class="duo-half red"><div class="optotype-row">${rowA}</div></div>
-      <div class="duo-half green"><div class="optotype-row">${rowB}</div></div>
-    </div>`;
-  acuityBadge.textContent = 'Duocromático — qual lado (vermelho ou verde) está mais nítido?';
-  acuityBadge.classList.add('show');
-  topLeftBadges.classList.remove('show');
-}
-
-function renderContrast(){
-  const levels = [100,50,25,12,6,3];
-  const fontPx = optotypeHeightPx(state.distanceM, 63)/0.72;
-  const rows = levels.map(pct => {
-    const letters = pickRandom(SLOAN_SET, 3, true);
-    const opacity = Math.max(0.02, pct/100);
-    const spans = letters.map(l=>`<span class="optotype" style="font-size:${fontPx*0.6}px; opacity:${opacity};">${l}</span>`).join('');
-    return `<div class="contrast-line"><span class="pct">${pct}%</span><div class="optotype-row">${spans}</div></div>`;
-  }).join('');
-  opticalArea.innerHTML = `<div id="contrastWrap">${rows}</div>`;
-  acuityBadge.textContent = 'Sensibilidade ao contraste — aproximada, não equivale a teste fotométrico calibrado';
-  acuityBadge.classList.add('show');
-  topLeftBadges.classList.remove('show');
-}
-
-function showAcuityBadge(def, den, lineNum, total){
-  let text;
-  if(def.acuityStyle === 'snellen'){
-    text = `20/${den} · linha ${lineNum}/${total}`;
-  } else {
-    const logmar = LOGMAR_STEPS[LOGMAR_DEN.indexOf(den)];
-    text = `20/${Math.round(den)} (LogMAR ${logmar>=0?'+':''}${logmar.toFixed(1)}) · linha ${lineNum}/${total}`;
-  }
-  acuityBadge.textContent = text;
-  acuityBadge.classList.add('show');
-  topLeftBadges.classList.add('show');
-  topLeftBadges.innerHTML = `<div class="pill-badge">Distância: <b>${state.distanceM} m</b></div>` +
-    (state.calibrated ? '' : `<div class="pill-badge" style="color:#f0a83c;">Não calibrado</div>`);
-}
-
-/* ═══════════════════ CONTROLES / UI ═══════════════════ */
-
-const testTabsEl = document.getElementById('testTabs');
-TEST_ORDER.forEach(key => {
-  const btn = document.createElement('button');
-  btn.textContent = TEST_DEFS[key].label;
-  btn.dataset.key = key;
-  btn.addEventListener('click', () => setTestType(key));
-  testTabsEl.appendChild(btn);
-});
-function updateTabs(){
-  [...testTabsEl.children].forEach(b => b.classList.toggle('active', b.dataset.key === state.testType));
-}
-function setTestType(key){
-  state.testType = key;
-  state.lineIndex = 0;
-  state.isolate = false;
-  saveState();
-  render();
-}
-function cycleTestType(dir){
-  const idx = TEST_ORDER.indexOf(state.testType);
-  const next = (idx + dir + TEST_ORDER.length) % TEST_ORDER.length;
-  setTestType(TEST_ORDER[next]);
-}
-
-const eyeGroup = document.getElementById('eyeGroup');
-eyeGroup.addEventListener('click', (e) => {
-  const btn = e.target.closest('button');
-  if(!btn) return;
-  setEye(btn.dataset.eye);
-});
-function updateEyeGroup(){
-  [...eyeGroup.children].forEach(b => b.classList.toggle('active', b.dataset.eye === state.eye));
-}
-function setEye(eye){
-  state.eye = eye;
-  updateEyeGroup();
-  flashEye(eye);
-}
-function flashEye(eye){
-  const map = {
-    OD: ['Testando olho direito (OD)', 'Ocluir o olho esquerdo'],
-    OE: ['Testando olho esquerdo (OE)', 'Ocluir o olho direito'],
-    AO: ['Testando ambos os olhos (AO)', 'Sem oclusão'],
+  const state = {
+    optotype:'snellen', mode:'linha', line:6, mirror:false,
+    linesCache:null
   };
-  const [title, sub] = map[eye];
-  eyeFlashText.innerHTML = `${title}<small>${sub}</small>`;
-  eyeFlash.classList.add('show');
-  setTimeout(() => eyeFlash.classList.remove('show'), 1400);
-}
 
-function updateIsolateBtnState(){
-  const def = currentDef();
-  const supportsIsolate = def.family==='letters' || def.family==='tumblingE' || def.family==='landolt';
-  document.getElementById('isolateBtn').disabled = !supportsIsolate;
-  document.getElementById('isolateBtn').classList.toggle('active', state.isolate);
-  document.getElementById('randomizeBtn').disabled = !supportsIsolate;
-  document.getElementById('prevLineBtn').disabled = !supportsIsolate;
-  document.getElementById('nextLineBtn').disabled = !supportsIsolate;
-  document.getElementById('invertBtn').classList.toggle('active', state.inverted);
-  document.getElementById('mirrorBtn').classList.toggle('active', state.mirrored);
-}
-
-document.getElementById('prevLineBtn').addEventListener('click', () => changeLine(-1));
-document.getElementById('nextLineBtn').addEventListener('click', () => changeLine(1));
-function changeLine(dir){
-  const def = currentDef();
-  if(!def.den) return;
-  const total = def.den.length;
-  state.lineIndex = Math.min(total-1, Math.max(0, state.lineIndex+dir));
-  render();
-}
-document.getElementById('randomizeBtn').addEventListener('click', render);
-document.getElementById('isolateBtn').addEventListener('click', () => { state.isolate = !state.isolate; render(); });
-document.getElementById('invertBtn').addEventListener('click', () => {
-  state.inverted = !state.inverted;
-  stageEl.classList.toggle('inverted', state.inverted);
-  saveState();
-  updateIsolateBtnState();
-});
-document.getElementById('mirrorBtn').addEventListener('click', () => {
-  state.mirrored = !state.mirrored;
-  stageEl.classList.toggle('mirrored', state.mirrored);
-  saveState();
-  updateIsolateBtnState();
-});
-document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
-function toggleFullscreen(){
-  if(!document.fullscreenElement){
-    document.documentElement.requestFullscreen().catch(()=>{});
-  } else {
-    document.exitFullscreen().catch(()=>{});
+  function acuityFor(idx){
+    const clamped = Math.max(0, Math.min(N_LINES-1, idx));
+    const frac = SNELLEN_ACUITY[clamped].split('/');
+    const decimal = (parseFloat(frac[0])/parseFloat(frac[1]));
+    const logmar = (-Math.log10(decimal)).toFixed(2);
+    return { snellen:SNELLEN_ACUITY[clamped], decimal:decimal.toFixed(2), logmar };
   }
-}
 
-/* ═══════════════════ AUTO-HIDE DA BARRA ═══════════════════ */
+  function buildLines(){
+    const lines = [];
+    for(let i=0;i<N_LINES;i++){
+      const count = N_PER_LINE_TABLE[i];
+      const row = [];
+      for(let j=0;j<count;j++){
+        if(state.optotype === 'snellen') row.push(rand(SNELLEN_LETTERS));
+        else if(state.optotype === 'sloan') row.push(rand(SLOAN_LETTERS));
+        else if(state.optotype === 'landolt') row.push(rand(LANDOLT_DIRS));
+        else row.push(rand(SYMBOLS));
+      }
+      lines.push(row);
+    }
+    return lines;
+  }
 
-let hideTimer;
-function showControlBar(){
-  controlBar.classList.add('show');
-  clearTimeout(hideTimer);
-  hideTimer = setTimeout(() => controlBar.classList.remove('show'), 5000);
-}
-['mousemove','click','keydown','touchstart'].forEach(evt => {
-  document.addEventListener(evt, () => { if(!setupEl.classList.contains('hidden')) return; showControlBar(); });
-});
+  function regen(){ state.linesCache = buildLines(); }
+  regen();
 
-/* ═══════════════════ TECLADO / CONTROLE REMOTO ═══════════════════ */
+  function dynamicSizePx(lineIdx){
+    const distance = parseInt(document.getElementById('acDistance').value,10) || 5;
+    const screen = parseInt(document.getElementById('acScreen').value,10) || 50;
+    const baseSizes = [128,102,84,68,56,46,38,31,26,21,17,14,12,10];
+    const distFactor = 5/distance;
+    const screenFactor = screen/50;
+    const factor = Math.min(Math.max(distFactor*screenFactor, 0.45), 2.4);
+    return Math.round((baseSizes[lineIdx]||14) * factor);
+  }
 
-document.addEventListener('keydown', (e) => {
-  if(!setupEl.classList.contains('hidden')) return; // não intercepta na tela de setup
-  const key = e.key.toLowerCase();
-  if(['arrowup','arrowdown','arrowleft','arrowright','enter'].includes(key)) e.preventDefault();
+  function renderLandolt(sizePx, angleDeg){
+    const thickness = Math.max(3, sizePx*0.18);
+    const wrap = el('div',{style:`width:${sizePx}px;height:${sizePx}px;border-radius:50%;border:${thickness}px solid #fff;position:relative;display:inline-block;transform:rotate(${angleDeg}deg);`});
+    const gap = el('div',{style:`position:absolute;width:${thickness*1.4}px;height:${thickness*1.6}px;background:var(--panel);top:50%;left:100%;transform:translate(-58%,-50%);`});
+    wrap.appendChild(gap);
+    return wrap;
+  }
 
-  if(key === 'arrowup') changeLine(-1);
-  else if(key === 'arrowdown') changeLine(1);
-  else if(key === 'arrowleft') cycleTestType(-1);
-  else if(key === 'arrowright') cycleTestType(1);
-  else if(key === 'enter') { state.isolate = !state.isolate; render(); }
-  else if(key === '1') setEye('OD');
-  else if(key === '2') setEye('AO');
-  else if(key === '3') setEye('OE');
-  else if(key === 'f') toggleFullscreen();
-  else if(key === 'i') document.getElementById('invertBtn').click();
-  else if(key === 'm') document.getElementById('mirrorBtn').click();
-  else if(key === 'c') setupEl.classList.remove('hidden');
-  else if(key === 'r') render();
-});
+  function renderSymbol(sizePx, kind){
+    const c = '#fff';
+    const svgs = {
+      circle:`<circle cx="12" cy="12" r="9" fill="${c}"/>`,
+      square:`<rect x="3" y="3" width="18" height="18" fill="${c}"/>`,
+      triangle:`<polygon points="12,3 21,20 3,20" fill="${c}"/>`,
+      star:`<polygon points="12,2 14.7,9 22,9.3 16.2,14 18.2,21 12,17 5.8,21 7.8,14 2,9.3 9.3,9" fill="${c}"/>`,
+      heart:`<path d="M12 21s-8-5.2-8-11.4C4 5.6 7 3 10 4.5 11 5 12 6.2 12 6.2s1-1.2 2-1.7c3-1.5 6 1.1 6 5.1C20 15.8 12 21 12 21z" fill="${c}"/>`,
+      cross:`<rect x="9" y="2" width="6" height="20" fill="${c}"/><rect x="2" y="9" width="20" height="6" fill="${c}"/>`,
+    };
+    const d = document.createElement('div');
+    d.style.cssText = `width:${sizePx}px;height:${sizePx}px;display:inline-block;`;
+    d.innerHTML = `<svg viewBox="0 0 24 24" width="100%" height="100%">${svgs[kind]||svgs.circle}</svg>`;
+    return d;
+  }
 
-/* ═══════════════════ INICIALIZAÇÃO ═══════════════════ */
+  function renderChar(ch, sizePx){
+    if(state.optotype === 'landolt') return renderLandolt(sizePx, ch);
+    if(state.optotype === 'simbolos') return renderSymbol(sizePx, ch);
+    return el('span',{style:`font-family:var(--optotype);font-weight:700;color:#fff;font-size:${sizePx}px;line-height:1;letter-spacing:2px;`}, [ch]);
+  }
 
-loadState();
-if(state.inverted) stageEl.classList.add('inverted');
-if(state.mirrored) stageEl.classList.add('mirrored');
+  function renderRow(rowIdx){
+    const sizePx = dynamicSizePx(rowIdx);
+    const row = el('div',{style:'display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;'});
+    (state.linesCache[rowIdx]||[]).forEach(ch => row.appendChild(renderChar(ch, sizePx)));
+    return row;
+  }
+
+  function render(){
+    const area = document.getElementById('acStageArea');
+    area.innerHTML = '';
+    area.style.transform = state.mirror ? 'scaleX(-1)' : 'none';
+
+    const label = {snellen:'Snellen', sloan:'Sloan (ETDRS)', landolt:'Landolt C', simbolos:'Optótipos infantis'}[state.optotype];
+    document.getElementById('acLabel').textContent = label;
+
+    if(state.mode === 'linha'){
+      area.appendChild(renderRow(state.line));
+    } else {
+      const wrap = el('div',{style:'display:flex;flex-direction:column;gap:14px;align-items:center;width:100%;'});
+      for(let i=0;i<N_LINES;i++){
+        const rowEl = renderRow(i);
+        if(i === state.line){
+          rowEl.style.outline = '1px dashed rgba(51,209,184,0.5)';
+          rowEl.style.borderRadius = '8px';
+          rowEl.style.padding = '4px 10px';
+        }
+        wrap.appendChild(rowEl);
+      }
+      area.innerHTML=''; area.appendChild(wrap);
+    }
+
+    const ac = acuityFor(state.line);
+    document.getElementById('acReadout').textContent = `${ac.snellen} · ${ac.decimal} · ${ac.logmar} logMAR`;
+  }
+
+  document.getElementById('acOptotype').addEventListener('click', e=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    document.querySelectorAll('#acOptotype button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.optotype = btn.dataset.v;
+    regen(); render();
+  });
+  document.getElementById('acMode').addEventListener('click', e=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    document.querySelectorAll('#acMode button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.mode = btn.dataset.v;
+    render();
+  });
+  document.getElementById('acDistance').addEventListener('change', render);
+  document.getElementById('acScreen').addEventListener('change', render);
+  document.getElementById('acMirror').addEventListener('click', function(){
+    state.mirror = !state.mirror;
+    this.textContent = state.mirror ? 'Desligar' : 'Ligar';
+    render();
+  });
+  document.getElementById('acPrev').addEventListener('click', ()=>{ if(state.line>0){ state.line--; render(); } });
+  document.getElementById('acNext').addEventListener('click', ()=>{ if(state.line<N_LINES-1){ state.line++; render(); } });
+
+  document.addEventListener('keydown', (e)=>{
+    if(!document.getElementById('panel-acuidade').classList.contains('active')) return;
+    if(['ArrowUp','ArrowDown','Enter'].includes(e.key)) e.preventDefault();
+    if(e.key === 'ArrowDown' && state.line < N_LINES-1){ state.line++; render(); }
+    else if(e.key === 'ArrowUp' && state.line > 0){ state.line--; render(); }
+    else if(e.key === 'Enter'){
+      state.mode = state.mode === 'linha' ? 'tabela' : 'linha';
+      document.querySelectorAll('#acMode button').forEach(b=>b.classList.toggle('active', b.dataset.v===state.mode));
+      render();
+    }
+  });
+
+  render();
+  window.addEventListener('resize', ()=>{ clearTimeout(window.__acRT); window.__acRT=setTimeout(render,150); });
+})();
+
+/* =========================================================
+   MÓDULO 2 — DISCROMATOPSIA (pranchas pseudoisocromáticas)
+   ========================================================= */
+(function daltonismoModule(){
+  const canvas = document.getElementById('dCanvas');
+  const ctx = canvas.getContext('2d');
+  const DIGITS = ['3','6','8','5','2','9','7','4','1','29','74','15'];
+  let plateIdx = 0;
+  let axis = 'rg';
+  let density = 'media';
+  let correct = 0, answered = 0;
+  let currentTarget = null;
+
+  const PALETTES = {
+    rg: { bg:[[25,60,55],[35,55,60],[45,50,55],[20,65,50]], fg:[[5,70,55],[100,45,45],[10,75,50],[95,50,42]] },
+    by: { bg:[[95,45,60],[80,50,58],[105,40,55]], fg:[[45,80,55],[55,75,58],[38,70,52]] },
+    mix:{ bg:[[25,60,55],[95,45,60],[35,55,55]], fg:[[100,45,45],[45,80,55],[10,75,50]] },
+  };
+
+  function hsl([h,s,l], jitter){
+    const hh = h + randRange(-jitter,jitter);
+    const ss = Math.max(20, Math.min(90, s + randRange(-8,8)));
+    const ll = Math.max(30, Math.min(75, l + randRange(-8,8)));
+    return `hsl(${hh.toFixed(0)},${ss.toFixed(0)}%,${ll.toFixed(0)}%)`;
+  }
+
+  function drawPlate(){
+    const W = canvas.width, H = canvas.height, R = W/2;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = '#e9e4d4';
+    ctx.beginPath(); ctx.arc(R,R,R,0,Math.PI*2); ctx.fill();
+
+    currentTarget = rand(DIGITS);
+    // desenha o alvo numa máscara offscreen
+    const mask = document.createElement('canvas'); mask.width=W; mask.height=H;
+    const mctx = mask.getContext('2d');
+    mctx.fillStyle = '#000'; mctx.fillRect(0,0,W,H);
+    mctx.fillStyle = '#fff';
+    mctx.font = `bold ${W*0.5}px Arial`;
+    mctx.textAlign='center'; mctx.textBaseline='middle';
+    mctx.fillText(currentTarget, W/2, H/2 + W*0.02);
+    const maskData = mctx.getImageData(0,0,W,H).data;
+    function isInside(x,y){
+      const idx = (Math.floor(y)*W + Math.floor(x))*4;
+      return maskData[idx] > 128;
+    }
+
+    const pal = PALETTES[axis];
+    const rMin = density==='alta'?3.2:density==='baixa'?5.5:4.2;
+    const rMax = rMin + 2.6;
+    const dots = [];
+    let attempts = 0;
+    const maxAttempts = density==='alta'?9000:density==='baixa'?3500:6000;
+    while(attempts < maxAttempts){
+      attempts++;
+      const ang = Math.random()*Math.PI*2;
+      const rad = Math.sqrt(Math.random())*(R-6);
+      const x = R + Math.cos(ang)*rad;
+      const y = R + Math.sin(ang)*rad;
+      const rr = randRange(rMin,rMax);
+      let ok = true;
+      for(let k=Math.max(0,dots.length-40); k<dots.length; k++){
+        const d = dots[k];
+        const dx=d.x-x, dy=d.y-y;
+        if(Math.sqrt(dx*dx+dy*dy) < (d.r+rr)*0.82){ ok=false; break; }
+      }
+      if(!ok) continue;
+      const inside = isInside(x,y);
+      dots.push({x,y,r:rr,inside});
+    }
+    dots.forEach(d=>{
+      const set = d.inside ? pal.fg : pal.bg;
+      ctx.fillStyle = hsl(rand(set), 6);
+      ctx.beginPath(); ctx.arc(d.x,d.y,d.r,0,Math.PI*2); ctx.fill();
+    });
+
+    document.getElementById('dPlateIdx').textContent = plateIdx+1;
+    buildResponseButtons();
+  }
+
+  function buildResponseButtons(){
+    const area = document.getElementById('dResponseArea');
+    area.innerHTML = '<span>Resposta do paciente:</span>';
+    const digits = ['0','1','2','3','4','5','6','7','8','9'];
+    digits.forEach(d=>{
+      const b = el('button',{class:'btn', style:'padding:6px 12px;', onclick:()=>registerAnswer(d)}, [d]);
+      area.appendChild(b);
+    });
+    area.appendChild(el('button',{class:'btn ghost', style:'padding:6px 12px;', onclick:()=>registerAnswer('none')}, ['Não enxerga']));
+  }
+
+  function registerAnswer(ans){
+    answered++;
+    if(ans === currentTarget) correct++;
+    document.getElementById('dScoreReadout').textContent = `${correct} acertos · ${answered} registradas`;
+  }
+
+  document.getElementById('dAxis').addEventListener('click', e=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    document.querySelectorAll('#dAxis button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    axis = btn.dataset.v; drawPlate();
+  });
+  document.getElementById('dDensity').addEventListener('change', e=>{ density = e.target.value; drawPlate(); });
+  document.getElementById('dNext').addEventListener('click', ()=>{ plateIdx = (plateIdx+1) % DIGITS.length; drawPlate(); });
+  document.getElementById('dReset').addEventListener('click', ()=>{
+    correct=0; answered=0; plateIdx=0;
+    document.getElementById('dScoreReadout').textContent = '0 acertos · 0 registradas';
+    drawPlate();
+  });
+
+  drawPlate();
+})();
+
+/* =========================================================
+   MÓDULO 3 — ASTIGMATISMO (dial radial)
+   ========================================================= */
+(function astigmatismoModule(){
+  const svg = document.getElementById('astSvg');
+  let rays = 24, showDeg = false;
+
+  function draw(){
+    const cx=280, cy=280, rInner=26, rOuter=250;
+    let html = `<circle cx="${cx}" cy="${cy}" r="${rOuter+6}" fill="#0a0a0a" stroke="rgba(178,206,206,0.15)" stroke-width="1"/>`;
+    for(let i=0;i<rays;i++){
+      const angle = (Math.PI*i)/rays; // 0..180 (linhas atravessam o centro)
+      const dx = Math.cos(angle), dy = Math.sin(angle);
+      const x1 = cx - dx*rOuter, y1 = cy - dy*rOuter;
+      const x2 = cx + dx*rOuter, y2 = cy + dy*rOuter;
+      html += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#f2f2ee" stroke-width="3" stroke-linecap="round"/>`;
+      if(showDeg && i % (rays/12) === 0){
+        const deg = Math.round((i*180/rays));
+        const lx = cx + dx*(rOuter+20), ly = cy - dy*(rOuter+20);
+        html += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#7e9291" font-size="12" font-family="JetBrains Mono, monospace" text-anchor="middle">${deg}°</text>`;
+      }
+    }
+    html += `<circle cx="${cx}" cy="${cy}" r="${rInner}" fill="#0a0a0a" stroke="#33d1b8" stroke-width="2"/>`;
+    html += `<circle cx="${cx}" cy="${cy}" r="3" fill="#33d1b8"/>`;
+    svg.innerHTML = html;
+  }
+
+  document.getElementById('astRays').addEventListener('click', e=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    document.querySelectorAll('#astRays button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    rays = parseInt(btn.dataset.v,10); draw();
+  });
+  document.getElementById('astDegrees').addEventListener('click', function(){
+    showDeg = !showDeg;
+    this.textContent = showDeg ? 'Ocultar' : 'Mostrar';
+    draw();
+  });
+  document.getElementById('astSave').addEventListener('click', ()=>{
+    const v = document.getElementById('astInput').value;
+    document.getElementById('astReadout').textContent = v ? `Eixo relatado: ${v}°` : 'Eixo relatado: —';
+  });
+
+  draw();
+})();
+
+/* =========================================================
+   MÓDULO 4 — GRADE DE AMSLER
+   ========================================================= */
+(function amslerModule(){
+  const svg = document.getElementById('amSvg');
+  let variant = 'fino', density = 20;
+  let marks = new Set();
+
+  function draw(){
+    const size = 560, cell = size/density;
+    const strokeW = variant === 'grosso' ? 2.4 : 0.8;
+    let html = `<rect x="0" y="0" width="${size}" height="${size}" fill="#0a0a0a"/>`;
+    for(let i=0;i<=density;i++){
+      const p = i*cell;
+      html += `<line x1="${p}" y1="0" x2="${p}" y2="${size}" stroke="#f2f2ee" stroke-width="${strokeW}"/>`;
+      html += `<line x1="0" y1="${p}" x2="${size}" y2="${p}" stroke="#f2f2ee" stroke-width="${strokeW}"/>`;
+    }
+    marks.forEach(key=>{
+      const [i,j] = key.split(',').map(Number);
+      html += `<rect x="${i*cell}" y="${j*cell}" width="${cell}" height="${cell}" fill="rgba(240,169,78,0.35)"/>`;
+    });
+    html += `<circle cx="${size/2}" cy="${size/2}" r="4.5" fill="#ef6f5b"/>`;
+    // camada de captura de clique
+    html += `<rect x="0" y="0" width="${size}" height="${size}" fill="transparent" id="amClickLayer"/>`;
+    svg.innerHTML = html;
+
+    svg.querySelector('#amClickLayer').addEventListener('click', (e)=>{
+      const rect = svg.getBoundingClientRect();
+      const scaleX = size / rect.width, scaleY = size / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+      const i = Math.floor(x/cell), j = Math.floor(y/cell);
+      const key = `${i},${j}`;
+      if(marks.has(key)) marks.delete(key); else marks.add(key);
+      document.getElementById('amMarksReadout').textContent = `${marks.size} área${marks.size===1?'':'s'} marcada${marks.size===1?'':'s'}`;
+      draw();
+    });
+  }
+
+  document.getElementById('amVariant').addEventListener('click', e=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    document.querySelectorAll('#amVariant button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    variant = btn.dataset.v; draw();
+  });
+  document.getElementById('amDensity').addEventListener('change', e=>{ density = parseInt(e.target.value,10); marks.clear(); draw(); });
+  document.getElementById('amClear').addEventListener('click', ()=>{
+    marks.clear();
+    document.getElementById('amMarksReadout').textContent = '0 áreas marcadas';
+    draw();
+  });
+
+  draw();
+})();
+
+/* =========================================================
+   MÓDULO 5 — SENSIBILIDADE AO CONTRASTE
+   ========================================================= */
+(function contrasteModule(){
+  const WORDS = ['R O T','S V C','H D N','Z K O','C S H','V N D','T Z R','H O K','N R S','D V Z'];
+  let bg = 'claro', levels = 8;
+
+  function render(){
+    const area = document.getElementById('ctStageArea');
+    area.innerHTML = '';
+    const bgColor = bg==='claro' ? '#e9e4d4' : '#141414';
+    const fgColor = bg==='claro' ? [10,10,10] : [235,235,235];
+    const bgRgb = bg==='claro' ? [233,228,212] : [20,20,20];
+
+    let lastLegible = null;
+
+    for(let i=0;i<levels;i++){
+      const t = i/(levels-1); // 0 = contraste máximo, 1 = mínimo
+      const mixed = fgColor.map((c,idx)=> Math.round(c + (bgRgb[idx]-c)*Math.pow(t,1.35)));
+      const color = `rgb(${mixed.join(',')})`;
+      const contrastPct = Math.round((1-Math.pow(t,1.35))*100);
+      const row = el('div',{
+        style:`background:${bgColor};border:1px solid var(--line);border-radius:10px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;`,
+        onclick:()=>{
+          document.querySelectorAll('.ct-row').forEach(r=>r.style.outline='none');
+          row.style.outline = '2px solid #33d1b8';
+          const logCS = (2 - Math.log10(Math.max(100-contrastPct,1))).toFixed(2);
+          document.getElementById('ctReadout').textContent = `Última linha legível: nível ${i+1} · contraste ~${contrastPct}% · ${logCS} log CS`;
+        }
+      });
+      row.className = 'ct-row';
+      row.appendChild(el('span',{style:`font-family:var(--optotype);font-weight:700;font-size:38px;letter-spacing:10px;color:${color};`}, [WORDS[i%WORDS.length]]));
+      row.appendChild(el('span',{style:'font-family:var(--mono);font-size:11px;color:var(--muted-2);'}, [`${contrastPct}%`]));
+      area.appendChild(row);
+    }
+  }
+
+  document.getElementById('ctBg').addEventListener('click', e=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    document.querySelectorAll('#ctBg button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    bg = btn.dataset.v; render();
+  });
+  document.getElementById('ctLevels').addEventListener('change', e=>{ levels = parseInt(e.target.value,10); render(); });
+
+  render();
+})();
+
+/* =========================================================
+   MÓDULO 6 — TESTE DUOCROMÁTICO
+   ========================================================= */
+(function duocromaticoModule(){
+  let orient = 'vertical', content = 'letras';
+
+  function render(){
+    const area = document.getElementById('duStageArea');
+    const isVertical = orient === 'vertical';
+    area.style.display='flex';
+    area.style.flexDirection = isVertical ? 'row' : 'column';
+    area.innerHTML = '';
+
+    const halves = [
+      { bg:'#8a1f1f', label:'Vermelho' },
+      { bg:'#1f6b3a', label:'Verde' },
+    ];
+
+    halves.forEach(h=>{
+      const half = el('div',{style:`flex:1;background:${h.bg};display:flex;align-items:center;justify-content:center;`});
+      if(content === 'letras'){
+        half.appendChild(el('span',{style:'font-family:var(--optotype);font-weight:700;font-size:64px;color:#111;letter-spacing:6px;'}, ['O H V']));
+      } else {
+        half.appendChild(el('div',{style:'width:70px;height:70px;border-radius:50%;background:#111;'}));
+      }
+      area.appendChild(half);
+    });
+  }
+
+  document.getElementById('duOrient').addEventListener('click', e=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    document.querySelectorAll('#duOrient button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    orient = btn.dataset.v; render();
+  });
+  document.getElementById('duContent').addEventListener('click', e=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    document.querySelectorAll('#duContent button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    content = btn.dataset.v; render();
+  });
+  document.querySelectorAll('[data-ans]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const map = {vermelho:'Mais nítido no lado Vermelho', igual:'Nitidez igual', verde:'Mais nítido no lado Verde'};
+      document.getElementById('duReadout').textContent = `Resposta: ${map[btn.dataset.ans]}`;
+    });
+  });
+
+  render();
+})();
 
 })();
 </script>
+
 </body>
 </html>
